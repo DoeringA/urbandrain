@@ -1,0 +1,87 @@
+## ----setup, include=FALSE-----------------------------------------------------
+knitr::opts_chunk$set(echo = TRUE)
+
+## ----load_package_data, message=FALSE-----------------------------------------
+library(urbandrain)
+
+# load example dataset containing input data:
+data(ex1, package = "urbandrain")
+summary(ex1)
+
+# load paths to external input data:
+path_raintimeseries <- system.file("extdata", "default_rain.dat", package = "urbandrain")
+path_options <- system.file("extdata", "options.txt", package = "urbandrain")
+
+
+## ----create_swmm_model, warning = F, message = F, fig.keep = "none", out.width = '150%'----
+
+# load swmmr package from github:
+remotes::install_github("DoeringA/swmmr@read_sf_to_inp")
+
+# define a directory to write the output to:
+path_out_temp <- tempdir()
+
+# run function to generate a drainage network in SWMM's inp file format:
+network_list <- create_swmm_model(
+  streets = ex1$streets,
+  dtm = ex1$dtm,
+  outfalls = ex1$outfall,
+  crs_default = ex1$network_parameters$crs_default,
+  buffer = ex1$network_parameters$buffer, 
+  snap_dist = ex1$network_parameters$snap_dist, 
+  epsilon = ex1$network_parameters$epsilon, 
+  lim = ex1$network_parameters$lim,  
+  min_junc_depth = ex1$network_parameters$min_junc_depth, 
+  mean_junc_depth = ex1$network_parameters$mean_junc_depth, 
+  max_junc_depth = ex1$network_parameters$max_junc_depth,  
+  min_slope = ex1$network_parameters$min_slope, 
+  max_slope = ex1$network_parameters$max_slope, 
+  ds = ex1$network_parameters$ds,
+  stepwise = TRUE, 
+  break_closed_loops = FALSE,  
+  delete_disconnected = FALSE, 
+  breaks_at_hills = TRUE, 
+  break_loops = TRUE,  
+  short_cut_sinks = TRUE, 
+  direct_drainage_sinks = FALSE,
+  boundary_polygon = ex1$boundary_polygon, 
+  landuse_sf = ex1$landuse,
+  landuse_classes = ex1$landuse_classes, 
+  path_timeseries = system.file("extdata", "default_rain.dat", package = "urbandrain"),
+  path_options = system.file("extdata", "options.txt", package = "urbandrain"),
+  infiltration = ex1$infiltration,
+  path_out = path_out_temp
+)
+
+# show summary of the final artificially generated drainage network:
+summary(network_list)
+
+## ----create_drainage_model, warning = F, message = F, fig.keep = "none", out.width = '150%'----
+network_list <- create_drainage_network(
+  streets = ex1$streets,
+  dtm = ex1$dtm,
+  outfalls = ex1$outfall,
+  crs_default = ex1$network_parameters$crs_default,
+  buffer = ex1$network_parameters$buffer, 
+  snap_dist = ex1$network_parameters$snap_dist, 
+  epsilon = ex1$network_parameters$epsilon, 
+  lim = ex1$network_parameters$lim,  
+  min_junc_depth = ex1$network_parameters$min_junc_depth, 
+  mean_junc_depth = ex1$network_parameters$mean_junc_depth, 
+  max_junc_depth = ex1$network_parameters$max_junc_depth,  
+  min_slope = ex1$network_parameters$min_slope, 
+  max_slope = ex1$network_parameters$max_slope, 
+  ds = ex1$network_parameters$ds, 
+  stepwise = TRUE, 
+  break_closed_loops = FALSE,  
+  delete_disconnected = FALSE, 
+  breaks_at_hills = TRUE, 
+  break_loops = TRUE,  
+  short_cut_sinks = TRUE, 
+  direct_drainage_sinks = FALSE
+)
+
+# show summary of the final artificially generated drainage network:
+summary(network_list)
+
+

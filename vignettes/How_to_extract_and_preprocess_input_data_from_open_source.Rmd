@@ -1,0 +1,132 @@
+---
+title: "How to extract and preprocess input data from open source"
+author: "Anneke Okka Schoenfeld"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{How to extract and preprocess input data from open source}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Which input data is needed to run the drainage network generator?
+
+The stormwater drainage network generator provided by the urbandrain package uses open source input data. The following data can be extracted from open source data bases:
+
+- street polyline data (**streets**) for example from open street maps (OSM): https://www.openstreetmap.de/
+- land use information (**landuse**) for example extracted from open street maps (OSM): https://www.openstreetmap.de/
+- a digital terrain model (**dtm**) for example from the shuttle radar topography mission (SRTM): https://www.opendem.info/download_srtm.html
+- rain timeseries (**path_raintimeseries**) for example from the Climate Data Center provided by the DWD: https://opendata.dwd.de/climate_environment/CDC/
+
+Additionally the follwing input data is needed. These input data require some basic knowledge of the model site:
+
+- Outfall points (**outfalls**) to which the network drains to.
+- A boundary polygon (**boundary_polygon**) around the outfall catchment or catchments.
+- A minimum distance value (**lim**) between street nodes (unit: meter). For example mean distance between inspection shafts.
+- A range within the junctions dephts are allowed to vary (**min_junc_depth**, **mean_junc_depth**, **max_junc_depth**).
+- A range within the pipe slopes are allowed to vary, based on the terrain (**min_slope**, **max_slope**).
+
+
+## How do I extract open source data and how do I process them?
+In this example data is extracted for the example case provided by this package:
+
+```{r load_package_data}
+library(urbandrain)
+library(osmdata)
+
+# access provided boundary polygon from example data:
+data(ex1, package = "urbandrain")
+boundary_polygon <- ex1$boundary_polygon
+
+```
+
+### Download street and landuse data from OSM and process them:
+
+```{r osm_data_processing, warning=FALSE, message=FALSE}
+# rectangular area for OSM extraction:
+coords <- as.data.frame(sf::st_coordinates(boundary_polygon))
+min_x <- min(coords$X)
+max_x <- max(coords$X)
+min_y <- min(coords$Y)
+max_y <- max(coords$Y)
+
+# function to extract streets, buildings and landuse from OSM:
+extractFromOSM <- function(key, boundary_polygon, min_x, min_y, max_x, max_y){
+  # download street data from OSM:
+  data <- osmdata::opq(bbox = c(min_x, min_y, max_x, max_y))
+  data <- osmdata::add_osm_feature(opq = data, key = key)
+  data <- osmdata::osmdata_sf(data)
+  
+  # extract polylines or polygon data:
+  if(key == "highway"){
+    data <- data$osm_lines[c("highway", "maxspeed")]
+  }
+  if(key == "landuse" | key == "building"){
+    data <- data$osm_polygons[key]
+  }
+  
+  # cut to model area
+  data <- sf::st_intersection(boundary_polygon, data)
+  
+  return(data)
+  
+}
+
+# download data from OSM:
+streets <- extractFromOSM("highway", boundary_polygon, min_x, min_y, max_x, max_y)
+building <- extractFromOSM("building", boundary_polygon, min_x, min_y, max_x, max_y)
+landuse <- extractFromOSM("landuse", boundary_polygon, min_x, min_y, max_x, max_y)
+
+# select streets under which the drainage network shall be placed
+# for example exclude motorways, paths etc.
+streets_selected <- streets[streets$highway %in% c("unclassified","residential","tertiary",
+                                                   "secondary","primary",
+                                                   "pedestrian","trunk",
+                                                   "unclassified", "living_street"),]
+# ... plot data
+plot(streets["highway"])
+
+
+# union landuse and building data:
+a <- landuse[,2]
+b <- building[,2]
+colnames(b)  <- c("landuse", "geometry")
+op1 <- sf::st_difference(a,sf::st_union(b)) #notice the use of st_union()
+op2 <- sf::st_intersection(b, a) #notice the order of b and a
+op2 <- op2[,1]
+colnames(op2) <- c("landuse", "geometry")
+landuse_complete <- rbind(op1, op2)
+
+# ... plot data
+plot(landuse_complete)
+
+# additionally a data.frame specifying the imperviousness of the landuse classes is needed, for example:
+landuse_classes <- data.frame(class = unique(landuse_complete$landuse), imperviousness = c(0.4,0,1))
+landuse_classes
+
+```
+
+### Processing of DTM data from SRTM:
+Download the SRTM Digital Terrain Model of Germany from https://www.opendem.info/download_srtm.html.
+
+```{r srtm_dtm_processing, eval = F}
+# download srtm data and load data to R:
+dtm_path <- "path to srtm data"
+
+# load srtm tif:
+dtm_germany <- raster::raster(dtm_path)
+
+# cut raster extent to boundary_polygon:
+dtm <- raster::intersect(dtm_germany, boundary_polygon)
+
+# if needed: interpolate to get a finer raster resolution:
+dtm_fine <- raster::disaggregate(dtm, fact = 10, method = "bilinear")
+
+
+```
+
+### Further parameters:
+To see the structure of further input parameters view ex1 example data, vignette [How to built a drainage network model using urbandrain](How_to_built_a_drainage_network_model_using_urbandrain.html) or the documentation of the functions create_swmm_model and create_drainage_network.
