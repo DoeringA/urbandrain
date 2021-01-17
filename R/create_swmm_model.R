@@ -64,7 +64,7 @@ create_swmm_model <- function(streets, dtm, outfalls, crs_default, buffer, snap_
   # sf::st_write(subcatchments, file.path(path_out, "subcatchments_artificial_SWMM_format.shp"))
 
   # ... convert sf to inp
-  inp <- swmmr::shp_to_inp(
+  inp <- swmmr::sf_to_inp(
     outfall_sf = outfalls,
     line_sf = conduits,
     point_sf = junctions,
