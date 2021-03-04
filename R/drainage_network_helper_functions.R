@@ -75,6 +75,18 @@ tag_nodes <- function(street_vertices){
   return(street_vertices)
 }
 
+#' order tags for start and end nodes
+#' @keywords internal
+define_tag_order <- function(street_vertices){
+  street_vertices$tag_order <- NA
+  for(i in unique(street_vertices$L2)){
+    segment <- which(street_vertices$L2 == i)
+    street_vertices$tag_order[dplyr::first(segment)] <- "start"
+    street_vertices$tag_order[dplyr::last(segment)] <- "end"
+  }
+  return(street_vertices)
+}
+
 #' add a new point to an existing street
 #' @keywords internal
 add_point_to_street <- function(point_to_add, street_vertices){
@@ -181,7 +193,7 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
   # sf of street coordinates
   street_vertices <- sf::st_as_sf(coords_streets, coords = c("X", "Y"), crs = crs_default)
 
-  # summarize points within a buffer:
+  # summarize points, which belong to different layers, within a buffer :
   coords_streets$buf <- NA
 
   for(i in 1:nrow(street_vertices)){
@@ -191,7 +203,10 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
 
       same <- which(as.numeric(sf::st_distance(street_vertices[i,], street_vertices)) < buffer
                     & as.numeric(sf::st_distance(street_vertices[i,], street_vertices)) != 0)
-
+      
+      # keep points that belong to different layers:
+      same <- same[street_vertices$L1[same] != street_vertices$L1[i]]
+      
       if(all(i < same)){
         # overwrite coordinates...
         coords_streets$X[same] <- coords_streets$X[i]
@@ -201,7 +216,6 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
         #... checks... can be deleted?
         dist <- sf::st_distance(street_vertices[i,], street_vertices[same,])
       }
-
     }
 
     street_vertices <- sf::st_as_sf(coords_streets, coords = c("X", "Y"), crs = crs_default)
@@ -226,7 +240,7 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
     subset <- street_vertices[street_vertices$L1 == i,]
     if(any(duplicated(subset$Name))){
       # delete the point that is duplicated and has no "fp" tag:
-      doubled_name <- subset$Name[duplicated(subset$Name)]
+      doubled_names <- subset$Name[duplicated(subset$Name)]
 
       # test if line consist only of two duplicated points:
       if(nrow(subset) <= 2){
@@ -234,17 +248,20 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
         del_node <- which(street_vertices$L1 == i)
 
       }else{
-        if(all(is.na(subset$tag[subset$Name == doubled_name])) | all(is.na(subset$tag[subset$Name == doubled_name]) == F)){
-          # if both points are NA or "fp" delete one:
-          del_node <- which(street_vertices$L1 == i &
-                              street_vertices$Name == doubled_name)[1]
-
-        }else{
-          # if only one of the doubled points is a "fp" delete the non "fp":
-          del_node <- which(street_vertices$L1 == i &
-                              street_vertices$Name == doubled_name &
-                              is.na(street_vertices$tag) == T)
+        for(n in doubled_names){
+          if(all(is.na(subset$tag[subset$Name == n])) | all(is.na(subset$tag[subset$Name == n]) == F)){
+            # if both points are NA or "fp" delete one:
+            del_node <- which(street_vertices$L1 == i &
+                                street_vertices$Name == n)[1]
+            
+          }else{
+            # if only one of the doubled points is a "fp" delete the non "fp":
+            del_node <- which(street_vertices$L1 == i &
+                                street_vertices$Name == n &
+                                is.na(street_vertices$tag) == T)
+          }
         }
+
       }
 
       # delete point from data set:
@@ -364,6 +381,71 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
       break
     }
   }
+  
+  # add crossing label to points that occur more than twice:
+  for( i in unique(street_vertices$Name[street_vertices$Name != "crossing"])){
+    if(length(which(street_vertices$Name == i)) > 2){
+      street_vertices$Name[street_vertices$Name == i] <- "crossing"
+    }
+  }
+  
+  # update row numbers
+  row.names(street_vertices) <- seq(1:nrow(street_vertices))
+  
+  # define start and end vertex of polyline according to order in data.frame
+  street_vertices <- define_tag_order(street_vertices)
+  
+  # summaries polylines sharing start and end nodes (connected fixpoints, no crossings)
+  vertices_to_summaries <- street_vertices$Name[street_vertices$con == "TRUE" & street_vertices$Name != "crossing" & !is.na(street_vertices$tag_order)]
+  
+  for( i in unique(vertices_to_summaries)){
+    
+    # combine only two terminating points (start/end):
+    if(any(is.na(street_vertices$tag_order[street_vertices$Name ==  i]))){
+      next
+    }else{
+      layers_to_summarize <- street_vertices$L2[street_vertices$Name == i]
+      
+      segment_to_shift <- street_vertices[street_vertices$L2 == max(layers_to_summarize),]
+      segment_to_connect <- street_vertices[street_vertices$L2 == min(layers_to_summarize),]
+      
+      
+      # check order of vertices
+      if(all(street_vertices$tag_order[street_vertices$Name ==  i] == c("start", "start"))){
+        # shift vertices of connecting segment (starting from second vertex) in reverse order above the connecting vertex
+        combined_segments <- rbind(segment_to_shift[nrow(segment_to_shift):2,], segment_to_connect)
+      }
+      
+      if(all(street_vertices$tag_order[street_vertices$Name ==  i] == c("start", "end"))){
+        # shift vertices of connecting segment above the connecting vertex and keep order
+        combined_segments <- rbind(segment_to_shift[1:(nrow(segment_to_shift)-1),], segment_to_connect)
+      }
+      
+      if(all(street_vertices$tag_order[street_vertices$Name ==  i] == c("end", "start"))){
+        # keep order but delete duplicated vertex
+        combined_segments <- rbind(segment_to_connect, segment_to_shift[2:nrow(segment_to_shift),])
+      }
+      
+      if(all(street_vertices$tag_order[street_vertices$Name ==  i] == c("end", "end"))){
+        # shift vertices of connecting segment in reverse order below the connecting vertex
+        combined_segments <- rbind(segment_to_connect, segment_to_shift[(nrow(segment_to_shift)-1):1,])
+      }
+      
+      # update layer id
+      combined_segments$L2 <- min(layers_to_summarize)
+      
+      # delete segments from complete dataset
+      street_vertices <- street_vertices[!street_vertices$L2 %in% layers_to_summarize,]
+      
+      # rbind segments with complete dataset
+      street_vertices <- rbind(street_vertices, combined_segments)
+      
+      # update tag order
+      street_vertices <- define_tag_order(street_vertices)
+      
+    }
+  }
+  
 
   #### Simplify shape of network: ####
   message(" ... simplify the shape of the network (Douglas-Peucker Algorithm)")
