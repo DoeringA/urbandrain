@@ -26,6 +26,7 @@
 #' @return A list of sf objects junctions, conduits and outfalls.
 #' @export
 #' @rdname create_drainage_network
+#' @importFrom stats runif
 
 create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer, snap_dist, epsilon, lim,  min_junc_depth, mean_junc_depth, max_junc_depth,  min_slope, max_slope, ds, stepwise, break_closed_loops,  delete_disconnected, breaks_at_hills, break_loops,  short_cut_sinks, direct_drainage_sinks){
 
@@ -327,7 +328,7 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
           new_outfall_name <- paste0("n_",name_nearest_outfall,"_",count)
           outfalls <- rbind(outfalls, outfalls[outfalls$Name == name_nearest_outfall,])
           outfalls[nrow(outfalls),"Name"] <- new_outfall_name
-          outfalls[nrow(outfalls),"geometry"] <- outfalls[nrow(outfalls),"geometry"] + runif(1, min = 0, max = 2)
+          outfalls[nrow(outfalls),"geometry"] <- outfalls[nrow(outfalls),"geometry"] + stats::runif(1, min = 0, max = 2)
 
           new_conduit <- rbind(outfalls[nrow(outfalls),"Name"], junctions_u[junctions_u$Name == sink,"Name"])
           new_conduit <- dplyr::summarize(new_conduit, .groups = "drop_last")

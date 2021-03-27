@@ -30,6 +30,7 @@ Imports:
     viridis (>= 0.5.1)
 Suggests: 
     knitr,
+    rgdal,
     rmarkdown,
     sf,
     osmdata
