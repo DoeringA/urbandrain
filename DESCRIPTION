@@ -29,6 +29,7 @@ Imports:
     graphics (>= 3.5.3),
     viridis (>= 0.5.1)
 Suggests: 
+    ggplot2,
     knitr,
     rgdal,
     rmarkdown,
