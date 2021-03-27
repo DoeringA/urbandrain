@@ -32,7 +32,7 @@ path_options <- system.file("extdata", "options.txt", package = "urbandrain")
 ```{r create_swmm_model, warning = F, message = F, fig.keep = "none", out.width = '150%'}
 
 # load swmmr package from github:
-remotes::install_github("DoeringA/swmmr@read_sf_to_inp")
+# remotes::install_github("DoeringA/swmmr@read_sf_to_inp")
 
 # define a directory to write the output to:
 path_out_temp <- tempdir()

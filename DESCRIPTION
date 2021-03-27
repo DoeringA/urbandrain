@@ -30,10 +30,11 @@ Imports:
     viridis (>= 0.5.1)
 Suggests: 
     knitr,
-    rgdal,
     rmarkdown,
-    stars,
+    sf,
     osmdata
+Remotes:
+    github::DoeringA/swmmr@read_sf_to_inp
 VignetteBuilder: 
     knitr
 Encoding: UTF-8
