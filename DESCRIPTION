@@ -33,6 +33,7 @@ Suggests:
     rgdal,
     rmarkdown,
     sf,
+    stars,
     osmdata
 Remotes:
     github::DoeringA/swmmr@read_sf_to_inp
