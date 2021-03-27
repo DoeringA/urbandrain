@@ -1,11 +1,5 @@
----
-title: "urbandrain"
-output: github_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+[![R-CMD-check](https://github.com/DoeringA/urbandrain/workflows/R-CMD-check/badge.svg)](https://github.com/DoeringA/urbandrain/actions?query=workflow%3AR-CMD-check)
+[![pkgdown](https://github.com/DoeringA/urbandrain/workflows/pkgdown/badge.svg)](https://github.com/DoeringA/urbandrain/actions?query=workflow%3Apkgdown)
 
 This R package provides functions to automatically generate a stormwater drainage network. The aim is to keep existing urban structures and rebuild the pipe system as close to reality as possible. Since public drainage pipes are arranged in the road cross-section as gravity driven open channels, we setup the drainage network below the existing streets and define flow directions following the surface topology. Required input data are publicly available. The result is a SWMM input file including a complete drainage network model with discharging surfaces, junctions, conduits and outfalls. 
 
@@ -13,6 +7,7 @@ For further details on the input data please view vignette: [How to extract and 
 
 
 ## Installation
+
 You can install the package from github with:
 ```{r gh-installation, eval = FALSE}
 # install.packages("remotes")
@@ -20,12 +15,12 @@ remotes::install_github("DoeringA/urbandrain")
 ```
 
 ## Example
+
 The package includes an example case containing input information and the final inp file. The required input data can be downloaded from open source plattforms (see vignettes).
 
 ```{r load_package_data, message=FALSE, warning=F, fig.keep = "last", out.width = '150%'}
 # install required packages:
 library(urbandrain)
-remotes::install_github("DoeringA/swmmr@read_sf_to_inp")
 
 # load example dataset containing input data:
 data(ex1, package = "urbandrain")

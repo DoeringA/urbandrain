@@ -1,3 +1,7 @@
+[![R-CMD-check](https://github.com/DoeringA/urbandrain/workflows/R-CMD-check/badge.svg)](https://github.com/DoeringA/urbandrain/actions?query=workflow%3AR-CMD-check)
+[![pkgdown](https://github.com/DoeringA/urbandrain/workflows/pkgdown/badge.svg)](https://github.com/DoeringA/urbandrain/actions?query=workflow%3Apkgdown)
+
+
 urbandrain
 ================
 
@@ -101,7 +105,7 @@ network_list <- create_swmm_model(
     ## Writing layer `links_artificial_SWMM_format' to data source `C:/Anneke/rtemp\Rtmp4Y0NVc/links_artificial_SWMM_format.shp' using driver `ESRI Shapefile'
     ## Writing 30 features with 11 fields and geometry type Line String.
 
-<img src="README_files/figure-gfm/load_package_data-1.png" width="150%" />
+<img src="inst/extdata/figure-gfm/load_package_data-1.png" width="150%" />
 
 ``` r
 # show summary of the final artificially generated drainage network:
@@ -157,4 +161,4 @@ ggplot() +
   labs(title = "SWMM model Example1")
 ```
 
-<img src="README_files/figure-gfm/visualization-1.png" width="80%" />
+<img src="inst/extdata/figure-gfm/visualization-1.png" width="80%" />

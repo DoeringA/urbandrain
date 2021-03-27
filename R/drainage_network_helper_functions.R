@@ -850,6 +850,7 @@ correct_artificial_outfalls <- function(junctions, conduits_sf){
 
 #' correct sinks
 #' @keywords internal
+#' @importFrom stats runif
 correct_sinks <- function(junctions, conduits_sf, outfalls, short_cut_sinks, direct_drainage_sinks, ds){
 
   sink_at_end <- NULL
@@ -948,7 +949,7 @@ correct_sinks <- function(junctions, conduits_sf, outfalls, short_cut_sinks, dir
                 new_outfall_name <- paste0("n_",name_nearest_outfall)
                 outfalls <- rbind(outfalls, outfalls[outfalls$Name == name_nearest_outfall,])
                 outfalls[nrow(outfalls),"Name"] <- new_outfall_name
-                outfalls[nrow(outfalls),"geometry"] <- outfalls[nrow(outfalls),"geometry"] + runif(1, min = 0, max = 2)
+                outfalls[nrow(outfalls),"geometry"] <- outfalls[nrow(outfalls),"geometry"] + stats::runif(1, min = 0, max = 2)
 
                 new_conduit <- rbind(outfalls[nrow(outfalls),"Name"], junctions[junctions$Name == sink,"Name"])
                 new_conduit <- dplyr::summarize(new_conduit, .groups = "drop_last")
