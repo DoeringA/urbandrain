@@ -1,3 +1,7 @@
+[![R-CMD-check](https://github.com/DoeringA/urbandrain/workflows/R-CMD-check/badge.svg)](https://github.com/DoeringA/urbandrain/actions?query=workflow%3AR-CMD-check)
+[![pkgdown](https://github.com/DoeringA/urbandrain/workflows/pkgdown/badge.svg)](https://github.com/DoeringA/urbandrain/actions?query=workflow%3Apkgdown)
+
+
 urbandrain
 ================
 
