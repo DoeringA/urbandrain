@@ -1,30 +1,40 @@
-Package: urbandrain
 Type: Package
-Title: Automated generation of a stormwater drainage networks using spatial data 
+Package: urbandrain
+Title: Automated generation of a stormwater drainage networks
+    using spatial data
 Version: 0.1.0
-Author: person("Anneke Okka", "Schoenfeld", email = "schoenfeld@hydromech.uni-hannover.de", 
-    role = c("aut", "cre"))
-Maintainer: Anneke Okka Schoenfeld <schoenfeld@hydromech.uni-hannover.de>
-Description: An approach to automatically generate stormwater drainage networks using open source spatial data. 
-    The aim is to keep existing urban structures and rebuild the pipe system as close to reality as possible. 
-    The artificial stormwater drainage network is derived from existing urban structures, 
-    such as land use, topography and streets. Required input data are publicly available. 
-    The result is a SWMM input file including a complete drainage network model with discharging surfaces, junctions, conduits and outfalls.
-Imports:
-  deldir (>= 0.1-29),
-  dplyr (>= 1.0.2),
-  gstat (>= 2.0-6),
-  kmlShape (>= 0.9.5),
-  raster (>= 3.3-13),
-  sf (>= 0.9-6),
-  swmmr (>= 0.9.1),
-  graphics (>= 3.5.3),
-  viridis (>= 0.5.1)
-Suggests: knitr, rmarkdown, osmdata
-VignetteBuilder: knitr
+Author: person("Anneke Okka", "Schoenfeld", email =
+    "schoenfeld@hydromech.uni-hannover.de", role = c("aut", "cre"))
+Maintainer: Anneke Okka Schoenfeld
+    <schoenfeld@hydromech.uni-hannover.de>
+Description: An approach to automatically generate stormwater
+    drainage networks using open source spatial data.  The aim is to keep
+    existing urban structures and rebuild the pipe system as close to
+    reality as possible.  The artificial stormwater drainage network is
+    derived from existing urban structures, such as land use, topography
+    and streets. Required input data are publicly available.  The result
+    is a SWMM input file including a complete drainage network model with
+    discharging surfaces, junctions, conduits and outfalls.
 License: GPL-3
+Depends: 
+    R (>= 2.10)
+Imports:
+    deldir (>= 0.1-29),
+    dplyr (>= 1.0.2),
+    gstat (>= 2.0-6),
+    kmlShape (>= 0.9.5),
+    raster (>= 3.3-13),
+    sf (>= 0.9-6),
+    swmmr (>= 0.9.1),
+    graphics (>= 3.5.3),
+    viridis (>= 0.5.1)
+Suggests: 
+    knitr,
+    rgdal,
+    rmarkdown,
+    osmdata
+VignetteBuilder: 
+    knitr
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
-Depends: 
-    R (>= 2.10)
