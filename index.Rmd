@@ -7,6 +7,7 @@ For further details on the input data please view vignette: [How to extract and 
 
 
 ## Installation
+
 You can install the package from github with:
 ```{r gh-installation, eval = FALSE}
 # install.packages("remotes")
@@ -14,6 +15,7 @@ remotes::install_github("DoeringA/urbandrain")
 ```
 
 ## Example
+
 The package includes an example case containing input information and the final inp file. The required input data can be downloaded from open source plattforms (see vignettes).
 
 ```{r load_package_data, message=FALSE, warning=F, fig.keep = "last", out.width = '150%'}
