@@ -21,7 +21,6 @@ The package includes an example case containing input information and the final 
 ```{r load_package_data, message=FALSE, warning=F, fig.keep = "last", out.width = '150%'}
 # install required packages:
 library(urbandrain)
-remotes::install_github("DoeringA/swmmr@read_sf_to_inp")
 
 # load example dataset containing input data:
 data(ex1, package = "urbandrain")
