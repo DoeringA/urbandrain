@@ -3,10 +3,16 @@ Package: urbandrain
 Title: Automated generation of a stormwater drainage networks
     using spatial data
 Version: 0.1.0
-Author: person("Anneke Okka", "Schoenfeld", email =
-    "schoenfeld@hydromech.uni-hannover.de", role = c("aut", "cre"))
-Maintainer: Anneke Okka Schoenfeld
-    <schoenfeld@hydromech.uni-hannover.de>
+Authors@R: 
+    c(person(given = "Anneke Okka",
+             family = "Schoenfeld",
+             role = c("aut", "cre"), 
+             email = "schoenfeld@hydromech.uni-hannover.de"), 
+      person(given = "Michael",
+             family = "Rustler",
+             role = "ctb",
+             email = "michael.rustler@kompetenz-wasser.de",
+             comment = c(ORCID = "0000-0003-0647-7726")))
 Description: An approach to automatically generate stormwater
     drainage networks using open source spatial data.  The aim is to keep
     existing urban structures and rebuild the pipe system as close to
