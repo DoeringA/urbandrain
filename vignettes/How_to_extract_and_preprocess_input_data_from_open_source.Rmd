@@ -31,6 +31,7 @@ Additionally the follwing input data is needed. These input data require some ba
 
 
 ## How do I extract open source data and how do I process them?
+
 In this example data is extracted for the example case provided by this package:
 
 ```{r load_package_data}
@@ -110,8 +111,10 @@ landuse_classes
 
 ```
 
-### Processing of DTM data from SRTM:
+### Processing of DTM data from SRTM
+
 Download the SRTM Digital Terrain Model of Germany from https://www.opendem.info/download_srtm.html.
+
 
 ```{r srtm_dtm_processing, eval = TRUE}
 dtm_url <- "https://www.opendem.info/downloads/srtm_germany_dtm.zip"
