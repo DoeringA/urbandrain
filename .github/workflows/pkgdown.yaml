@@ -4,6 +4,7 @@ on:
       - main
       - master
       - dev
+      - github-actions
 
 name: pkgdown
 
