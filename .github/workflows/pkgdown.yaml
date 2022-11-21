@@ -10,7 +10,7 @@ name: pkgdown
 
 jobs:
   pkgdown:
-    runs-on: macOS-latest
+    runs-on: windows-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -42,9 +42,11 @@ jobs:
 
       - name: Install package
         run: R CMD INSTALL .
+        shell: cmd
 
       - name: Deploy package
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           Rscript -e 'pkgdown::deploy_to_branch(new_process = FALSE)'
+        shell: cmd
