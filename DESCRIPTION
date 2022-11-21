@@ -34,7 +34,8 @@ Imports:
     swmmr (>= 0.9.1),
     graphics (>= 3.5.3),
     viridis (>= 0.5.1)
-Suggests: 
+Suggests:
+    archive,
     ggplot2,
     knitr,
     rgdal,
