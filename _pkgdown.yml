@@ -2,11 +2,17 @@ authors:
   Anneke Okka Schoenfeld:
     href: https://www.hydromech.uni-hannover.de/schoenfeld/
   Michael Rustler:
-    href: https://www.kompetenz-wasser.de/en/ueber-uns/team/michael-rustler
+    href: https://mrustl.de
 
 template:
-  params:
-    bootswatch: cerulean
+  bootstrap: 5
+  bootswatch: cerulean
+  bslib:
+    bg: '#ffffff'
+    fg: '#000000'
+    primary: '#007aff'
+    border-radius: 0.5rem
+    btn-border-radius: 0.25rem
 
 development:
   mode: auto

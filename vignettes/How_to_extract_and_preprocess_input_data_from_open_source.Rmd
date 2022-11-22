@@ -63,7 +63,7 @@ boundary_polygon <- ex1$boundary_polygon
 
 ### Download street and landuse data from OSM and process them:
 
-```{r osm_data_processing, warning=FALSE, message=FALSE}
+```{r osm_data_processing}
 # rectangular area for OSM extraction:
 coords <- as.data.frame(sf::st_coordinates(boundary_polygon))
 min_x <- min(coords$X)
@@ -133,7 +133,7 @@ landuse_classes
 Download the SRTM Digital Terrain Model of Germany from https://www.opendem.info/download_srtm.html.
 
 
-```{r srtm_dtm_processing, eval = TRUE}
+```{r srtm_dtm_processing}
 dtm_url <- "https://www.opendem.info/downloads/srtm_germany_dtm.zip"
 dtm_zip_path <- file.path(tempdir(), basename(dtm_url))
 dtm_dir <- file.path(tempdir(), "srtm")

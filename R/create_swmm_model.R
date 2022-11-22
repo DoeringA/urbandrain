@@ -75,6 +75,8 @@
 #' for SWMM on typical installation folders (default: NULL)
 #' @return A list of sf objects junctions, conduits, outfalls and subcatchments.
 #' @export
+#' @importFrom swmmr write_inp run_swmm sf_to_inp
+#' @importFrom sf st_transform 
 
 create_swmm_model <- function(streets, 
                               dtm, 
@@ -140,7 +142,9 @@ create_swmm_model <- function(streets,
     boundary_polygon <- sf::st_transform(boundary_polygon, crs_default)
     # create subcatchments with thiessen polygons and landuse information:
     subcatchments <- thiessenpolygons(junctions, boundary_polygon)
-    subcatchments <- thiessen_to_subcatchments(landuse_sf = landuse_sf, landuse_classes = landuse_classes, thiessen_polygons = subcatchments)
+    subcatchments <- thiessen_to_subcatchments(landuse_sf = landuse_sf, 
+                                               landuse_classes = landuse_classes, 
+                                               thiessen_polygons = subcatchments)
   }
 
   # # ... delete all files except options and rain:

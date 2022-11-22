@@ -32,7 +32,7 @@ summary(urbandrain::ex1)
 To generate a drainage network without recharging surfaces and without pipe 
 sizing (and also not running SWMM), run the following code below:
 
-```{r create_drainage_model, out.width = '150%'}
+```{r create_drainage_model}
 network_list <- urbandrain::create_drainage_network(
   streets = ex1$streets,
   dtm = ex1$dtm,
