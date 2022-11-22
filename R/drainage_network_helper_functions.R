@@ -153,7 +153,16 @@ create_linestrings_from_single_layer <- function(new_segment){
 
 #' create junctions based on street polylines
 #' @keywords internal
-create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_depth, dtm, crs_default, pre_def_junctions, pre_def_conduits){
+create_junctions <- function(streets, 
+                             buffer, 
+                             snap_dist, 
+                             epsilon, 
+                             lim, 
+                             junc_depth, 
+                             dtm, 
+                             crs_default, 
+                             pre_def_junctions, 
+                             pre_def_conduits){
 
   # plot initial data:
   graphics::plot(sf::st_geometry(streets), col = "grey", main = "street polylines")
@@ -1259,7 +1268,13 @@ adjustSlopesAndJuncDepths <- function(conduits, junctions, outfall, min_slope, m
 
 #' breaks in network
 #' @keywords internal
-breaks_in_network <- function(break_closed_loops, break_loops, breaks_at_hills, delete_disconnected, junctions, outfalls, conduits_sf){
+breaks_in_network <- function(break_closed_loops, 
+                              break_loops, 
+                              breaks_at_hills, 
+                              delete_disconnected, 
+                              junctions, 
+                              outfalls, 
+                              conduits_sf){
   if(break_closed_loops){
     #### if an stack overflow occurs because of closed loops in the network devide network as follows: ####
     # remember skipped conduits:

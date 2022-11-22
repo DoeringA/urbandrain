@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Which input data is needed to run the drainage network generator?
 
-The stormwater drainage network generator provided by the urbandrain package uses 
+The stormwater drainage network generator provided by the `urbandrain` package uses 
 open source input data. The following data can be extracted from open source data 
 bases:
 
@@ -163,4 +163,4 @@ dtm_fine <- raster::disaggregate(dtm, fact = 10, method = "bilinear")
 
 To see the structure of further input parameters view ex1 example data, vignette 
 [How to built a drainage network model using urbandrain](../How_to_built_a_drainage_network_model_using_urbandrain.html) 
-or the documentation of the functions `create_swmm_model()` and `create_drainage_network()`.
+or the documentation of the functions `create_drainage_network()` and `create_swmm_model()`.

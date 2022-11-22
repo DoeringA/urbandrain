@@ -32,7 +32,8 @@ create_swmm_model(
   path_timeseries,
   path_options,
   infiltration,
-  path_out
+  path_out,
+  swmm_exe
 )
 }
 \arguments{
@@ -123,6 +124,9 @@ classes. Currently, homogenous soil for the model area is assumed.}
 
 \item{path_out}{Directory to store the swmm input file and the model data in 
 shp format to.}
+
+\item{swmm_exe}{path to swmm executable, if NULL swmmr will check will search 
+for SWMM on typical installation folders (default: NULL)}
 }
 \value{
 A list of sf objects junctions, conduits, outfalls and subcatchments.

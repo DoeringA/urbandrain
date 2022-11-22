@@ -71,6 +71,8 @@
 #' classes. Currently, homogenous soil for the model area is assumed.
 #' @param path_out Directory to store the swmm input file and the model data in 
 #' shp format to.
+#' @param swmm_exe path to swmm executable, if NULL swmmr will check will search 
+#' for SWMM on typical installation folders (default: NULL)
 #' @return A list of sf objects junctions, conduits, outfalls and subcatchments.
 #' @export
 
@@ -101,7 +103,8 @@ create_swmm_model <- function(streets,
                               path_timeseries, 
                               path_options, 
                               infiltration, 
-                              path_out){
+                              path_out,
+                              swmm_exe){
 
 
   #... create drainage network
@@ -162,13 +165,21 @@ create_swmm_model <- function(streets,
   )
 
   # ... save inp
-  swmmr::write_inp(inp, file.path(path_out, "artificial_SWMM_model.inp"))
+  swmmr::write_inp(inp, 
+                   file = file.path(path_out, "artificial_SWMM_model.inp")
+                   )
 
   # ... run swmm
-  swmmr::run_swmm(file.path(path_out, "artificial_SWMM_model.inp"))
+  swmmr::run_swmm(inp = file.path(path_out, "artificial_SWMM_model.inp"), 
+                  exec = swmm_exe)
 
   # ... pipe sizing algorithm
-  conduits_sized <- pipeSizingAlgorithm(inp, path_out, conduits, junctions, outfalls, target = "conduit_surcharge")
+  conduits_sized <- pipeSizingAlgorithm(inp, 
+                                        path_out, 
+                                        conduits, 
+                                        junctions, 
+                                        outfalls, 
+                                        target = "conduit_surcharge")
 
   # # ... save shp of sized pipes
   # sf::st_write(conduits_sized, file.path(path_out, "final_links_artificial_SWMM_format.shp"))

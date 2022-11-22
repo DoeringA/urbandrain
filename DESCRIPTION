@@ -36,14 +36,17 @@ Imports:
     viridis (>= 0.5.1)
 Suggests:
     archive,
+    fs,
     ggplot2,
     knitr,
+    kwb.utils,
     rgdal,
     rmarkdown,
     sf,
     stars,
     osmdata
 Remotes:
+    github::kwb-r/kwb.utils,
     github::DoeringA/swmmr@read_sf_to_inp
 VignetteBuilder: 
     knitr

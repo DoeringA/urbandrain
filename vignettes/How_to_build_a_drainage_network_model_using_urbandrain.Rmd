@@ -10,72 +10,29 @@ vignette: >
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+is_ghactions <- identical(Sys.getenv("CI"), "true")
+is_windows <- Sys.info()[1] == "Windows"
 ```
 
-### Load ex1 data provided in the package 
+## Example Dataset
+
+Load `ex1` dataset provided in the package: 
 
 ```{r load_package_data, message=FALSE}
 library(urbandrain)
 
-# load example dataset containing input data:
-data(ex1, package = "urbandrain")
-summary(ex1)
-
-# load paths to external input data:
-path_raintimeseries <- system.file("extdata", "default_rain.dat", package = "urbandrain")
-path_options <- system.file("extdata", "options.txt", package = "urbandrain")
+summary(urbandrain::ex1)
 
 ```
 
-### To setup a whole model in SWMM run the following
+## Drainage Network
 
-```{r create_swmm_model, warning = F, message = F, fig.keep = "none", out.width = '150%'}
+### Generate 
 
-# load swmmr package from github:
-# remotes::install_github("DoeringA/swmmr@read_sf_to_inp")
+To generate a drainage network without recharging surfaces and without pipe 
+sizing (and also not running SWMM), run the following code below:
 
-# define a directory to write the output to:
-path_out_temp <- tempdir()
-
-# run function to generate a drainage network in SWMM's inp file format:
-network_list <-  urbandrain::create_swmm_model(
-  streets = ex1$streets,
-  dtm = ex1$dtm,
-  outfalls = ex1$outfall,
-  crs_default = ex1$network_parameters$crs_default,
-  buffer = ex1$network_parameters$buffer, 
-  snap_dist = ex1$network_parameters$snap_dist, 
-  epsilon = ex1$network_parameters$epsilon, 
-  lim = ex1$network_parameters$lim,  
-  min_junc_depth = ex1$network_parameters$min_junc_depth, 
-  mean_junc_depth = ex1$network_parameters$mean_junc_depth, 
-  max_junc_depth = ex1$network_parameters$max_junc_depth,  
-  min_slope = ex1$network_parameters$min_slope, 
-  max_slope = ex1$network_parameters$max_slope, 
-  ds = ex1$network_parameters$ds,
-  stepwise = FALSE, 
-  break_closed_loops = FALSE,  
-  delete_disconnected = FALSE,  
-  breaks_at_hills = TRUE,  
-  break_loops = TRUE, 
-  short_cut_sinks = TRUE, 
-  direct_drainage_sinks = FALSE,
-  boundary_polygon = ex1$boundary_polygon, 
-  landuse_sf = ex1$landuse,
-  landuse_classes = ex1$landuse_classes, 
-  path_timeseries = system.file("extdata", "default_rain.dat", package = "urbandrain"),
-  path_options = system.file("extdata", "options.txt", package = "urbandrain"),
-  infiltration = ex1$infiltration,
-  path_out = path_out_temp
-)
-
-# show summary of the final artificially generated drainage network:
-summary(network_list)
-```
-
-### To generate a drainage network without recharging surfaces and without pipe sizing run the following:
-
-```{r create_drainage_model, warning = F, message = F, fig.keep = "none", out.width = '150%'}
+```{r create_drainage_model, out.width = '150%'}
 network_list <- urbandrain::create_drainage_network(
   streets = ex1$streets,
   dtm = ex1$dtm,
@@ -104,3 +61,118 @@ network_list <- urbandrain::create_drainage_network(
 summary(network_list)
 
 ```
+<!-- Not working, no subcatchments in model network!!! (maybe because 
+<!--  stepwise = FALSE instead of TRUE????)
+<!-- ### Visualize Model Structure -->
+
+<!-- With help of packages `ggplot2`, `sf` and `swmmr` we can plot entire swmm models. -->
+
+<!-- The following plotting code was inspired by [Dominik Leutnant](https://github.com/dleutnant/swmmr).  -->
+
+<!-- ```{r visualization} -->
+<!-- library(ggplot2) -->
+
+<!-- # calculate coordinates (centroid of subcatchment) for label position -->
+<!-- centroids <- sf::st_centroid(network_list$subcatchments) -->
+<!-- lab_coord <- tibble::as_tibble(sf::st_coordinates(centroids)) -->
+
+<!-- # add label coordinates to subcatchments -->
+<!-- network_list$subcatchments <- dplyr::bind_cols(network_list$subcatchments, lab_coord) -->
+
+<!-- # create the plot -->
+<!-- ggplot() +  -->
+<!--   # first plot the subcatchment and colour continously by Area -->
+<!--   geom_sf(data = network_list$subcatchments, aes(fill = Area)) +  -->
+<!--   # label by subcatchments by name -->
+<!--   geom_label(data = network_list$subcatchments, aes(X, Y, label = Name), alpha = 0.5, size = 3) + -->
+<!--   # add links and highlight Geom1 -->
+<!--   geom_sf(data = network_list$conduits, aes(colour = Geom1), size = 2) + -->
+<!--   # add junctions -->
+<!--   geom_sf(data = network_list$junctions, aes(size = Top), colour = "darkgrey") +  -->
+<!--   # change scales -->
+<!--   scale_fill_viridis_c() + -->
+<!--   scale_colour_viridis_c(direction = -1) + -->
+<!--   # change theme -->
+<!--   theme_linedraw() + -->
+<!--   theme(panel.grid.major = element_line(colour = "white")) + -->
+<!--   # add labels -->
+<!--   labs(title = "SWMM model Example1") -->
+<!-- ``` -->
+
+### Generate and Run SWMM 
+
+To setup a whole model and SWMM run the following code below:
+
+```{r create_and_run_swmm_model, eval = is_windows, out.width = '150%'}
+# define a directory to write the output to:
+path_out_temp <- tempdir()
+
+
+### Get specific SWMM Solver from USEPA: 
+### https://github.com/USEPA/Stormwater-Management-Model/releases
+
+paths_list <- list(
+  path_out_temp = fs::path_norm(tempdir()),
+  swmm_version = "5.1.15", # or: "5.1.13", "5.1.14", "5.2.0", "5.2.1", 
+  swmm_os = "win64", 
+  swmm_base_url = "https://github.com/USEPA/Stormwater-Management-Model/releases/download",
+  swmm_release_name = "swmm-solver-<swmm_version>-<swmm_os>",
+  swmm_release_name_zip = "<swmm_release_name>.zip",
+  swmm_release_url = "<swmm_base_url>/v<swmm_version>/<swmm_release_name_zip>",
+  swmm_zip = "<path_out_temp>/<swmm_release_name_zip>",
+  swmm_exe = "<path_out_temp>/<swmm_release_name>/bin/runswmm.exe"
+  )
+
+paths <- kwb.utils::resolve(paths_list)
+
+download.file(url = paths$swmm_release_url, 
+              destfile = paths$swmm_zip,
+              mode = "wb")
+
+archive::archive_extract(archive = paths$swmm_zip, 
+                         dir = paths$path_out_temp)
+
+
+options("swmmr.exec" = paths$swmm_exe)
+
+# load paths to external input data:
+path_raintimeseries <- system.file("extdata", "default_rain.dat", package = "urbandrain")
+path_options <- system.file("extdata", "options.txt", package = "urbandrain")
+
+# run function to generate a drainage network in SWMM's inp file format:
+network_list <-  urbandrain::create_swmm_model(
+  streets = ex1$streets,
+  dtm = ex1$dtm,
+  outfalls = ex1$outfall,
+  crs_default = ex1$network_parameters$crs_default,
+  buffer = ex1$network_parameters$buffer, 
+  snap_dist = ex1$network_parameters$snap_dist, 
+  epsilon = ex1$network_parameters$epsilon, 
+  lim = ex1$network_parameters$lim,  
+  min_junc_depth = ex1$network_parameters$min_junc_depth, 
+  mean_junc_depth = ex1$network_parameters$mean_junc_depth, 
+  max_junc_depth = ex1$network_parameters$max_junc_depth,  
+  min_slope = ex1$network_parameters$min_slope, 
+  max_slope = ex1$network_parameters$max_slope, 
+  ds = ex1$network_parameters$ds,
+  stepwise = FALSE, 
+  break_closed_loops = FALSE,  
+  delete_disconnected = FALSE,  
+  breaks_at_hills = TRUE,  
+  break_loops = TRUE, 
+  short_cut_sinks = TRUE, 
+  direct_drainage_sinks = FALSE,
+  boundary_polygon = ex1$boundary_polygon, 
+  landuse_sf = ex1$landuse,
+  landuse_classes = ex1$landuse_classes, 
+  path_timeseries = path_raintimeseries,
+  path_options = path_options,
+  infiltration = ex1$infiltration,
+  path_out = path_out_temp, 
+  swmm_exe = paths$swmm_exe
+)
+
+# show summary of the final artificially generated drainage network:
+summary(network_list)
+```
+

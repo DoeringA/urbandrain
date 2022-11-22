@@ -74,7 +74,9 @@ plot_path_to_outfall <- function(junctions_u, outfalls, oid, conduits_u, main, c
   graphics::points(coords_O$X, coords_O$Y, col = "red", pch = 19)
 
   # paths to outfall
-  list_O <- track_outfall_to_start_connectivity(outfalls = outfalls[oid,], junctions = junctions_u, conduits_sf = conduits_u)
+  list_O <- track_outfall_to_start_connectivity(outfalls = outfalls[oid,], 
+                                                junctions = junctions_u, 
+                                                conduits_sf = conduits_u)
 
   # add coloured arrows to show catchment of a defined outfall
   for(t in 1:length(list_O)){
