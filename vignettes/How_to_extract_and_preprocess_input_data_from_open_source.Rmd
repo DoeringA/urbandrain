@@ -144,7 +144,9 @@ archive::archive_extract(archive = dtm_zip_path,
                          dir = dtm_dir)
 
 # download srtm data and load data to R:
-dtm_path <- normalizePath(list.files(dtm_dir, recursive = TRUE))
+dtm_path <- fs::path_norm(list.files(dtm_dir, 
+                                     recursive = TRUE, 
+                                     full.names = TRUE))
 
 
 # load srtm tif:
