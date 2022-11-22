@@ -133,8 +133,6 @@ archive::archive_extract(archive = paths$swmm_zip,
                          dir = paths$path_out_temp)
 
 
-options("swmmr.exec" = paths$swmm_exe)
-
 # load paths to external input data:
 path_raintimeseries <- system.file("extdata", "default_rain.dat", package = "urbandrain")
 path_options <- system.file("extdata", "options.txt", package = "urbandrain")
