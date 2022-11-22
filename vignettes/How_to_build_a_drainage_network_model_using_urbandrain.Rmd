@@ -38,7 +38,7 @@ path_options <- system.file("extdata", "options.txt", package = "urbandrain")
 path_out_temp <- tempdir()
 
 # run function to generate a drainage network in SWMM's inp file format:
-network_list <- create_swmm_model(
+network_list <-  urbandrain::create_swmm_model(
   streets = ex1$streets,
   dtm = ex1$dtm,
   outfalls = ex1$outfall,
@@ -55,9 +55,9 @@ network_list <- create_swmm_model(
   ds = ex1$network_parameters$ds,
   stepwise = TRUE, 
   break_closed_loops = FALSE,  
-  delete_disconnected = FALSE, 
-  breaks_at_hills = TRUE, 
-  break_loops = TRUE,  
+  delete_disconnected = FALSE,  
+  breaks_at_hills = TRUE,  
+  break_loops = TRUE, 
   short_cut_sinks = TRUE, 
   direct_drainage_sinks = FALSE,
   boundary_polygon = ex1$boundary_polygon, 
@@ -74,8 +74,9 @@ summary(network_list)
 ```
 
 ### To generate a drainage network without recharging surfaces and without pipe sizing run the following:
+
 ```{r create_drainage_model, warning = F, message = F, fig.keep = "none", out.width = '150%'}
-network_list <- create_drainage_network(
+network_list <- urbandrain::create_drainage_network(
   streets = ex1$streets,
   dtm = ex1$dtm,
   outfalls = ex1$outfall,
