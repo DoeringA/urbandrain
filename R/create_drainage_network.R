@@ -1,33 +1,88 @@
 #' Create a drainage network including junctions, conduits and outfalls.
 #'
-#' Fully automated generation of a drainage network inclduding junctions, conduits and outfalls based on open source spatial data. Requires street polylines, a digital terrain model, outfall point data and some user defined parameters as input. Returns a list of the sf objects junctions, conduits and outalls that can be converted to a SWMM *.inp file using swmmr functions afterwards.
+#' Fully automated generation of a drainage network inclduding junctions, conduits 
+#' and outfalls based on open source spatial data. Requires street polylines, a 
+#' digital terrain model, outfall point data and some user defined parameters as 
+#' input. Returns a list of the sf objects junctions, conduits and outalls that 
+#' can be converted to a SWMM *.inp file using swmmr functions afterwards.
 #'
-#' @param streets Street polyline data of class sf. On basis of the street polylines the drainage network is setup. Street polyline data can be extracted for example from openstreetmaps.
-#' @param dtm Digital terrain information either of class RasterLayer or as a triangulated grid of class sf. Surface height data is required to add heights to junctions and to define the flow directions in the conduits subsequently.
-#' @param outfalls Outfall point data of class sf. The network drains towards these points.
-#' @param crs_default A proj4string (if dtm is of class RasterLayer) or EPSG Code to specify the default coordinate reference system. The measure of the default crs must be in m.
-#' @param buffer Minimum distance between street nodes (unit: meter). If distance is smaller street nodes are summarized. A parameter for quality checks on street polyline data.
-#' @param snap_dist Minimum distance between a polyline and an ending node (unit: meter). If distance is smaller street polylines are connected. A parameter for quality checks on street polyline data.
-#' @param epsilon Distance to ideal line between start and end point (unit: meter). Parameter from the Douglas Peucker Algorithm that is needed to simplify the shape of polylines. See \link[kmlShape]{DouglasPeuckerEpsilon} for further information.
-#' @param lim The maximum distance between two junctions (unit: meter). Can be interpreted as maximum pipe length. To avoid very short pipes this values can be exceeded occasionally.
+#' @param streets Street polyline data of class sf. On basis of the street 
+#' polylines the drainage network is setup. Street polyline data can be extracted 
+#' for example from openstreetmaps.
+#' @param dtm Digital terrain information either of class RasterLayer or as a 
+#' triangulated grid of class sf. Surface height data is required to add heights 
+#' to junctions and to define the flow directions in the conduits subsequently.
+#' @param outfalls Outfall point data of class sf. The network drains towards 
+#' these points.
+#' @param crs_default A proj4string (if dtm is of class RasterLayer) or EPSG Code
+#' to specify the default coordinate reference system. The measure of the default 
+#' crs must be in m.
+#' @param buffer Minimum distance between street nodes (unit: meter). If distance 
+#' is smaller street nodes are summarized. A parameter for quality checks on 
+#' street polyline data.
+#' @param snap_dist Minimum distance between a polyline and an ending node (unit: 
+#' meter). If distance is smaller street polylines are connected. A parameter 
+#' for quality checks on street polyline data.
+#' @param epsilon Distance to ideal line between start and end point (unit: meter). 
+#' Parameter from the Douglas Peucker Algorithm that is needed to simplify the 
+#' shape of polylines. See \link[kmlShape]{DouglasPeuckerEpsilon} for further 
+#' information.
+#' @param lim The maximum distance between two junctions (unit: meter). Can be 
+#' interpreted as maximum pipe length. To avoid very short pipes this values can 
+#' be exceeded occasionally.
 #' @param min_junc_depth Minimum junction depth (unit: meter).
 #' @param mean_junc_depth Mean junction depth (unit: meter).
 #' @param max_junc_depth Maximum junction depth (unit: meter).
 #' @param min_slope Minimum slope value (unit: -)
 #' @param max_slope Maximum slope value (unit: -)
-#' @param ds Threshold for local sinks in the network (unit: meter). If the depth of a local sink is greater than ds (depression storage). A shortcut is implemented either to the nearest outfall if direct_drainage_sinks is set TRUE or to the nearest lower junction if short_cut_sinks is set TRUE.
-#' @param stepwise Stepwise construction of the network if set to TRUE. When a stepwise construction is chosen, at first a base network including junctions at start, end and crossing fix points is computed. Then the local sink nodes are corrected.
+#' @param ds Threshold for local sinks in the network (unit: meter). If the depth 
+#' of a local sink is greater than ds (depression storage). A shortcut is 
+#' implemented either to the nearest outfall if direct_drainage_sinks is set 
+#' TRUE or to the nearest lower junction if short_cut_sinks is set TRUE.
+#' @param stepwise Stepwise construction of the network if set to TRUE. When a 
+#' stepwise construction is chosen, at first a base network including junctions 
+#' at start, end and crossing fix points is computed. Then the local sink nodes 
+#' are corrected.
 #' @param break_closed_loops -
 #' @param delete_disconnected -
-#' @param break_loops If set to TRUE: The drainage network is forked at junctions that have no incoming but more than one outgoing pipe. Parameter to increase the linearity of the network.
-#' @param breaks_at_hills If set to TRUE: The drainage network is forked at junctions that have incoming and more than one outgoing pipe. Parameter to increase the linearity of the network.
-#' @param short_cut_sinks If set to TRUE: drainage of local sinks that are deeper than ds towards the nearest lower junction.
-#' @param direct_drainage_sinks If set to TRUE (default): drainage of local sinks that are deeper than ds towards the nearest outfall node.
+#' @param break_loops If set to TRUE: The drainage network is forked at junctions 
+#' that have no incoming but more than one outgoing pipe. Parameter to increase 
+#' the linearity of the network.
+#' @param breaks_at_hills If set to TRUE: The drainage network is forked at 
+#' junctions that have incoming and more than one outgoing pipe. Parameter to 
+#' increase the linearity of the network.
+#' @param short_cut_sinks If set to TRUE: drainage of local sinks that are deeper 
+#' than ds towards the nearest lower junction.
+#' @param direct_drainage_sinks If set to TRUE (default): drainage of local sinks 
+#' that are deeper than ds towards the nearest outfall node.
 #' @return A list of sf objects junctions, conduits and outfalls.
 #' @export
-#' @rdname create_drainage_network
+#' @importFrom sf st_transform st_length
+#' @importFrom stats runif
+#' @importFrom raster projectRaster
+#' @importFrom graphics boxplot
 
-create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer, snap_dist, epsilon, lim,  min_junc_depth, mean_junc_depth, max_junc_depth,  min_slope, max_slope, ds, stepwise, break_closed_loops,  delete_disconnected, breaks_at_hills, break_loops,  short_cut_sinks, direct_drainage_sinks){
+create_drainage_network <- function(streets, 
+                                    dtm, 
+                                    outfalls, 
+                                    crs_default, 
+                                    buffer, 
+                                    snap_dist, 
+                                    epsilon, 
+                                    lim,  
+                                    min_junc_depth, 
+                                    mean_junc_depth, 
+                                    max_junc_depth,  
+                                    min_slope, 
+                                    max_slope, 
+                                    ds, 
+                                    stepwise, 
+                                    break_closed_loops,  
+                                    delete_disconnected, 
+                                    breaks_at_hills, 
+                                    break_loops,  
+                                    short_cut_sinks, 
+                                    direct_drainage_sinks){
 
   # ... check input data for structure
   if(all(class(streets) != "sf")){
@@ -42,11 +97,26 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     stop("class(outfalls) != sf")
   }
 
-  if(!any(is.numeric(c(buffer, snap_dist, epsilon, lim,  min_junc_depth, mean_junc_depth, max_junc_depth,  min_slope, max_slope, ds)))){
+  if(!any(is.numeric(c(buffer, 
+                       snap_dist, 
+                       epsilon, 
+                       lim,  
+                       min_junc_depth, 
+                       mean_junc_depth, 
+                       max_junc_depth,  
+                       min_slope, 
+                       max_slope, 
+                       ds)))){
     stop("buffer, snap_dist, epsilon, lim,  min_junc_depth, mean_junc_depth, max_junc_depth,  min_slope, max_slope, ds have to be numeric")
   }
 
-  if(!any(is.logical(c(stepwise, break_closed_loops,  delete_disconnected, breaks_at_hills, break_loops,  short_cut_sinks, direct_drainage_sinks)))){
+  if(!any(is.logical(c(stepwise, 
+                       break_closed_loops,
+                       delete_disconnected, 
+                       breaks_at_hills, 
+                       break_loops,  
+                       short_cut_sinks, 
+                       direct_drainage_sinks)))) {
     stop("stepwise, break_closed_loops,  delete_disconnected, breaks_at_hills, break_loops,  short_cut_sinks, direct_drainage_sinks only TRUE or FALSE are allowed")
   }
 
@@ -66,7 +136,16 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
 
   if(!stepwise){
     #### 1. Create junctions along the street polylines: ####
-    junctions <- create_junctions(streets = streets, buffer = buffer, snap_dist = snap_dist, epsilon = epsilon, lim = lim, junc_depth = NULL, dtm = dtm, crs_default = crs_default, pre_def_junctions = NULL, pre_def_conduits = NULL)
+    junctions <- create_junctions(streets = streets, 
+                                  buffer = buffer, 
+                                  snap_dist = snap_dist, 
+                                  epsilon = epsilon, 
+                                  lim = lim, 
+                                  junc_depth = NULL, 
+                                  dtm = dtm, 
+                                  crs_default = crs_default, 
+                                  pre_def_junctions = NULL, 
+                                  pre_def_conduits = NULL)
     message("1. junctions created")
 
     #### 2. Add junctions heights: ####
@@ -77,7 +156,8 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     message("2. junction heights added to initial junctions")
 
     #### 3. Define conduits along the topography: ####
-    network_list <- create_conduits_along_topography(vertices = junctions, main = "flow directions following the topography")
+    network_list <- create_conduits_along_topography(vertices = junctions, 
+                                                     main = "flow directions following the topography")
     junctions <- network_list$junctions
     conduits_sf <- network_list$conduits_sf
 
@@ -85,7 +165,12 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     message("3. flow directions in conduits are defined following the topography")
 
     #### 4. Add outfall conduit connection: ####
-    network_list <- add_outfall_connection(outfalls = outfalls, junctions = junctions, conduits_sf = conduits_sf, min_slope = min_slope, junc_depth = min_junc_depth, lim = lim)
+    network_list <- add_outfall_connection(outfalls = outfalls, 
+                                           junctions = junctions, 
+                                           conduits_sf = conduits_sf, 
+                                           min_slope = min_slope, 
+                                           junc_depth = min_junc_depth, 
+                                           lim = lim)
     junctions <- network_list$junctions
     conduits_sf <- network_list$conduits
     outfalls <- network_list$outfalls
@@ -96,10 +181,14 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     junctions <- error_checks(junctions, conduits_sf, outfalls)
 
     # plot tags...
-    plot_tagged_junctions(junctions, outfalls, conduits_sf, main = "add tags to junctions")
+    plot_tagged_junctions(junctions, 
+                          outfalls, 
+                          conduits_sf, 
+                          main = "add tags to junctions")
 
     #### 5. Correct artificial outfalls: ####
-    corrected_outfalls <- correct_artificial_outfalls(junctions = junctions, conduits_sf = conduits_sf)
+    corrected_outfalls <- correct_artificial_outfalls(junctions = junctions, 
+                                                      conduits_sf = conduits_sf)
     junctions <- corrected_outfalls$junctions
     conduits_sf <- corrected_outfalls$conduits
 
@@ -107,28 +196,45 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     junctions <- error_checks(junctions, conduits_sf, outfalls)
 
     # ... and plot:
-    plot_tagged_junctions(junctions, outfalls, conduits_sf, main = "corrected artificial outfalls")
+    plot_tagged_junctions(junctions, 
+                          outfalls, 
+                          conduits_sf, 
+                          main = "corrected artificial outfalls")
     message("5. artificial outfalls are corrected and transformed to start nodes")
 
     #### Add name to conduits: ####
     conduits_sf$Name <- paste0("C_", 1:nrow(conduits_sf))
 
     #### 6. Correct sinks: ####
-    list_sink_corrections <- correct_sinks(junctions, conduits_sf, outfalls, short_cut_sinks, direct_drainage_sinks, ds)
+    list_sink_corrections <- correct_sinks(junctions, 
+                                           conduits_sf, 
+                                           outfalls, 
+                                           short_cut_sinks, 
+                                           direct_drainage_sinks, 
+                                           ds)
     junctions <- list_sink_corrections$junctions
     conduits_sf <- list_sink_corrections$conduits_sf
     outfalls <- list_sink_corrections$outfalls
 
     # ... and plot:
     junctions <- error_checks(junctions, conduits_sf, outfalls)
-    plot_tagged_junctions(junctions, outfalls, conduits_sf, main = "corrected sinks")
+    plot_tagged_junctions(junctions, 
+                          outfalls, 
+                          conduits_sf, 
+                          main = "corrected sinks")
     plot_short_cuts(junctions, conduits_sf, outfalls, "red")
     message("6. local sinks in network are corrected")
 
     #### 7. Devide network (optional): ####
     message("7. optional breaks in network to increase linearity:")
     if(any(break_closed_loops, break_loops, breaks_at_hills, delete_disconnected)){
-      list_breaks <- breaks_in_network(break_closed_loops, break_loops, breaks_at_hills, delete_disconnected, junctions = junctions, outfalls = outfalls, conduits_sf = conduits_sf)
+      list_breaks <- breaks_in_network(break_closed_loops, 
+                                       break_loops, 
+                                       breaks_at_hills, 
+                                       delete_disconnected, 
+                                       junctions = junctions, 
+                                       outfalls = outfalls, 
+                                       conduits_sf = conduits_sf)
       junctions <- list_breaks$junctions
       conduits_sf <- list_breaks$conduits
       outfalls <- list_breaks$outfalls
@@ -138,7 +244,12 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     junctions <- error_checks(junctions, conduits_sf, outfalls)
     # plot paths:
     for (i in 1:nrow(outfalls)){
-      plot_path_to_outfall(junctions, outfalls, oid = i, conduits_sf, main = paste0("path to outfall ", i), col_arrow = "red")
+      plot_path_to_outfall(junctions, 
+                           outfalls, 
+                           oid = i, 
+                           conduits_sf, 
+                           main = paste0("path to outfall ", i), 
+                           col_arrow = "red")
     }
 
     message("8. outfall catchments are plotted")
@@ -150,27 +261,48 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     conduits_sf$OutOffset <- 0
 
     # calculate initial slopes and plot them...
-    conduits_sf$Slope <- calculateSlope(junctions = junctions, conduits_sf = conduits_sf, outfall = outfalls)
+    conduits_sf$Slope <- calculateSlope(junctions = junctions, 
+                                        conduits_sf = conduits_sf, 
+                                        outfall = outfalls)
     graphics::boxplot(conduits_sf$Slope, main = "conduit slopes before adjustment")
-    graphics::boxplot(junctions$Top - junctions$Bottom, main = "junction depths before slope adjustment")
-    plot_slopes(junctions = junctions, conduits_sf = conduits_sf, outfalls = outfalls, min_slope = min_slope, max_slope = max_slope, main = "slopes before adjustment")
+    graphics::boxplot(junctions$Top - junctions$Bottom, 
+                      main = "junction depths before slope adjustment")
+    plot_slopes(junctions = junctions, 
+                conduits_sf = conduits_sf, 
+                outfalls = outfalls, 
+                min_slope = min_slope, 
+                max_slope = max_slope, 
+                main = "slopes before adjustment")
 
     # correct slopes and junction depths in the range min/max slope and junction depth
-    list_slope_adjustments <- adjustSlopesAndJuncDepths(conduits = conduits_sf, junctions = junctions, outfall = outfalls,
-                                           min_slope = min_slope, max_slope = max_slope,
-                                           min_junc_depth = min_junc_depth, max_junc_depth = max_junc_depth,
-                                           mean_junc_depth = mean_junc_depth)
+    list_slope_adjustments <- adjustSlopesAndJuncDepths(conduits = conduits_sf, 
+                                                        junctions = junctions, 
+                                                        outfall = outfalls,
+                                                        min_slope = min_slope, 
+                                                        max_slope = max_slope,
+                                                        min_junc_depth = min_junc_depth, 
+                                                        max_junc_depth = max_junc_depth,
+                                                        mean_junc_depth = mean_junc_depth)
 
     outfalls <- list_slope_adjustments$outfall
     junctions <- list_slope_adjustments$junctions
     conduits_sf <- list_slope_adjustments$conduits
 
     # calculate final slopes ..
-    conduits_sf$Slope <- calculateSlope(junctions = junctions, conduits_sf = conduits_sf, outfall = outfalls)
+    conduits_sf$Slope <- calculateSlope(junctions = junctions, 
+                                        conduits_sf = conduits_sf, 
+                                        outfall = outfalls)
     # plot slopes ...
-    graphics::boxplot(conduits_sf$Slope, main = "conduit slopes after adjustment")
-    graphics::boxplot(junctions$Top - junctions$Bottom, main = "junction depths after slope adjustment")
-    plot_slopes(junctions = junctions, conduits_sf = conduits_sf, outfalls = outfalls, min_slope = min_slope, max_slope = max_slope,main = "slopes after adjustment")
+    graphics::boxplot(conduits_sf$Slope, 
+                      main = "conduit slopes after adjustment")
+    graphics::boxplot(junctions$Top - junctions$Bottom, 
+                      main = "junction depths after slope adjustment")
+    plot_slopes(junctions = junctions, 
+                conduits_sf = conduits_sf, 
+                outfalls = outfalls, 
+                min_slope = min_slope, 
+                max_slope = max_slope, 
+                main = "slopes after adjustment")
 
     message("9. Slopes and junction depths are adjusted within the given range (min_junc_depth, max_junc_depth, min_slope, max_slope)")
 
@@ -182,13 +314,24 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     message("10. missing default parameters are added")
 
     #### return ####
-    return(list(junctions = junctions, conduits = conduits_sf, outfalls = outfalls))
+    return(list(junctions = junctions, 
+                conduits = conduits_sf, 
+                outfalls = outfalls))
 
-  }else{
+  } else{
     #### 1. First call for creation of junctions (min possible amount of junctions): ####
     message("0. stepwise construction of the drainage network")
 
-    junctions <- create_junctions(streets = streets, buffer = buffer, snap_dist = snap_dist, epsilon = 10000, lim = 10000, junc_depth = NULL, dtm = dtm, crs_default = crs_default, pre_def_junctions = NULL, pre_def_conduits = NULL)
+    junctions <- create_junctions(streets = streets, 
+                                  buffer = buffer, 
+                                  snap_dist = snap_dist, 
+                                  epsilon = 10000, 
+                                  lim = 10000, 
+                                  junc_depth = NULL, 
+                                  dtm = dtm, 
+                                  crs_default = crs_default, 
+                                  pre_def_junctions = NULL, 
+                                  pre_def_conduits = NULL)
     message("1. initial junctions are created")
 
     #### 2. Add junctions heights: ####
@@ -199,7 +342,8 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     message("2. junction heights added to initial junctions")
 
     #### 3. Define conduits along the topography: ####
-    network_list <- create_conduits_along_topography(vertices = junctions, main = "flow directions following the topography")
+    network_list <- create_conduits_along_topography(vertices = junctions, 
+                                                     main = "flow directions following the topography")
     junctions <- network_list$junctions
     conduits_sf <- network_list$conduits_sf
 
@@ -207,7 +351,12 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     message("3. flow directions in conduits are defined following the topography")
 
     #### 4. Add outfall conduit connection: ####
-    network_list <- add_outfall_connection(outfalls = outfalls, junctions = junctions, conduits_sf = conduits_sf, min_slope = min_slope, junc_depth = min_junc_depth, lim = lim)
+    network_list <- add_outfall_connection(outfalls = outfalls, 
+                                           junctions = junctions, 
+                                           conduits_sf = conduits_sf, 
+                                           min_slope = min_slope, 
+                                           junc_depth = min_junc_depth, 
+                                           lim = lim)
     junctions <- network_list$junctions
     conduits_sf <- network_list$conduits
     outfalls <- network_list$outfalls
@@ -218,10 +367,14 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     junctions <- error_checks(junctions, conduits_sf, outfalls)
 
     # plot tags...
-    plot_tagged_junctions(junctions, outfalls, conduits_sf, main = "add tags to junctions")
+    plot_tagged_junctions(junctions, 
+                          outfalls, 
+                          conduits_sf, 
+                          main = "add tags to junctions")
 
     #### 5. Correct artificial outfalls: ####
-    corrected_outfalls <- correct_artificial_outfalls(junctions = junctions, conduits_sf = conduits_sf)
+    corrected_outfalls <- correct_artificial_outfalls(junctions = junctions, 
+                                                      conduits_sf = conduits_sf)
     junctions <- corrected_outfalls$junctions
     conduits_sf <- corrected_outfalls$conduits
 
@@ -229,26 +382,46 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     junctions <- error_checks(junctions, conduits_sf, outfalls)
 
     # ... and plot:
-    plot_tagged_junctions(junctions, outfalls, conduits_sf, main = "corrected artificial outfalls")
+    plot_tagged_junctions(junctions, 
+                          outfalls, 
+                          conduits_sf, 
+                          main = "corrected artificial outfalls")
     message("5. artificial outfall are corrected and tranformed to start nodes")
 
     #### Add name to conduits: ####
     conduits_sf$Name <- paste0("C_", 1:nrow(conduits_sf))
 
     #### 6. Correct sinks: ####
-    list_sink_corrections <- correct_sinks(junctions, conduits_sf, outfalls, short_cut_sinks, direct_drainage_sinks, ds)
+    list_sink_corrections <- correct_sinks(junctions, 
+                                           conduits_sf,
+                                           outfalls, 
+                                           short_cut_sinks, 
+                                           direct_drainage_sinks, 
+                                           ds)
     junctions <- list_sink_corrections$junctions
     conduits_sf <- list_sink_corrections$conduits_sf
 
     # ... and plot:
     junctions <- error_checks(junctions, conduits_sf, outfalls)
-    plot_tagged_junctions(junctions, outfalls, conduits_sf, main = "corrected sinks")
+    plot_tagged_junctions(junctions, 
+                          outfalls, 
+                          conduits_sf, 
+                          main = "corrected sinks")
     plot_short_cuts(junctions, conduits_sf, outfalls, "red")
 
     message("6. local sinks in initial network were corrected")
 
     #### 7. Create junctions with user defined epsilon and lim values: ####
-    network_list_2 <- create_junctions(streets, buffer, snap_dist, epsilon, lim, junc_depth = mean_junc_depth, dtm = dtm, crs_default, pre_def_junctions = junctions, pre_def_conduits = conduits_sf)
+    network_list_2 <- create_junctions(streets, 
+                                       buffer, 
+                                       snap_dist, 
+                                       epsilon, 
+                                       lim, 
+                                       junc_depth = mean_junc_depth, 
+                                       dtm = dtm, 
+                                       crs_default, 
+                                       pre_def_junctions = junctions, 
+                                       pre_def_conduits = conduits_sf)
 
     junctions_u <- network_list_2$junctions
     conduits_u <- network_list_2$conduits
@@ -257,7 +430,11 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     coords_junctions <- sf::st_coordinates(junctions_u)
     coords_junctions <- as.data.frame(coords_junctions)
     coords_junctions$Name <- junctions_u$Name
-    plot_drainage_network(coords = coords_junctions, outfalls = outfalls, conduits_sf= conduits_u, main = "user defined drainage network", col_arrow = "red")
+    plot_drainage_network(coords = coords_junctions, 
+                          outfalls = outfalls, 
+                          conduits_sf= conduits_u, 
+                          main = "user defined drainage network", 
+                          col_arrow = "red")
 
     # Top height from dtm, bottom height interpolated from first junction creation implemented in create_junctions
     junctions_u$Top <- add_junction_heights(junctions_u, dtm)
@@ -285,10 +462,15 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     conduits_u$Name <- paste0("C_", 1:nrow(conduits_u))
 
     #### Tag junctions: ####
-    junctions_u <- error_checks(junctions = junctions_u, conduits_sf = conduits_u, outfalls = outfalls)
+    junctions_u <- error_checks(junctions = junctions_u, 
+                                conduits_sf = conduits_u, 
+                                outfalls = outfalls)
 
     # plot tags...
-    plot_tagged_junctions(junctions_u, outfalls, conduits_u, main = "add tags to junctions")
+    plot_tagged_junctions(junctions_u, 
+                          outfalls, 
+                          conduits_u, 
+                          main = "add tags to junctions")
 
     #### 9. Add conduits to drain remaining sinks ####
     if(any(junctions_u$tag == "sink")){
@@ -327,7 +509,7 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
           new_outfall_name <- paste0("n_",name_nearest_outfall,"_",count)
           outfalls <- rbind(outfalls, outfalls[outfalls$Name == name_nearest_outfall,])
           outfalls[nrow(outfalls),"Name"] <- new_outfall_name
-          outfalls[nrow(outfalls),"geometry"] <- outfalls[nrow(outfalls),"geometry"] + runif(1, min = 0, max = 2)
+          outfalls[nrow(outfalls),"geometry"] <- outfalls[nrow(outfalls),"geometry"] + stats::runif(1, min = 0, max = 2)
 
           new_conduit <- rbind(outfalls[nrow(outfalls),"Name"], junctions_u[junctions_u$Name == sink,"Name"])
           new_conduit <- dplyr::summarize(new_conduit, .groups = "drop_last")
@@ -352,24 +534,41 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     message("9. Add short cuts to remaining local sinks")
 
     # plot tags...
-    junctions_u <- error_checks(junctions = junctions_u, conduits_sf = conduits_u, outfalls = outfalls)
-    plot_tagged_junctions(junctions_u, outfalls, conduits_u, main = "final error tags")
+    junctions_u <- error_checks(junctions = junctions_u, 
+                                conduits_sf = conduits_u, 
+                                outfalls = outfalls)
+    plot_tagged_junctions(junctions_u, 
+                          outfalls, 
+                          conduits_u, 
+                          main = "final error tags")
     plot_short_cuts(junctions_u, conduits_u, outfalls, "red")
 
+    
     #### 10. Breaks in network (optional): ####
     message("10. optional breaks in network to increase linearity:")
     if(any(break_closed_loops, break_loops, breaks_at_hills, delete_disconnected)){
-      list_breaks <- breaks_in_network(break_closed_loops, break_loops, breaks_at_hills, delete_disconnected, junctions = junctions_u, outfalls = outfalls, conduits_sf = conduits_u)
+      list_breaks <- breaks_in_network(break_closed_loops = break_closed_loops, 
+                                       break_loops = break_loops, 
+                                       breaks_at_hills = breaks_at_hills, 
+                                       delete_disconnected = delete_disconnected, 
+                                       junctions = junctions_u, 
+                                       outfalls = outfalls, 
+                                       conduits_sf = conduits_u)
       junctions_u <- list_breaks$junctions
       conduits_u <- list_breaks$conduits
       outfalls <- list_breaks$outfalls
     }
-
-
+    
     #### 11. Check consistency of network from outfall to start or hill ####
     # plot paths:
+    
     for (i in 1:nrow(outfalls)){
-      plot_path_to_outfall(junctions_u, outfalls, oid = i, conduits_u, main = paste0("path to outfall ", i), col_arrow = "red")
+      plot_path_to_outfall(junctions_u, 
+                           outfalls, 
+                           oid = i, 
+                           conduits_u, 
+                           main = paste0("path to outfall ", i), 
+                           col_arrow = "red")
     }
 
     message("11. outfall catchments are plotted")
@@ -381,26 +580,47 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     conduits_u$OutOffset <- 0
 
     # calculate initial slopes and plot them...
-    conduits_u$Slope <- calculateSlope(junctions = junctions_u, conduits_sf = conduits_u, outfall = outfalls)
+    conduits_u$Slope <- calculateSlope(junctions = junctions_u, 
+                                       conduits_sf = conduits_u, 
+                                       outfall = outfalls)
     graphics::boxplot(conduits_u$Slope, main = "conduit slopes before adjustment")
-    graphics::boxplot(junctions_u$Top - junctions_u$Bottom, main = "junction depths before slope adjustment")
-    plot_slopes(junctions = junctions_u, conduits_sf = conduits_u, min_slope = min_slope, max_slope = max_slope, outfalls = outfalls, main = "slopes before adjustment")
+    graphics::boxplot(junctions_u$Top - junctions_u$Bottom, 
+                      main = "junction depths before slope adjustment")
+    plot_slopes(junctions = junctions_u, 
+                conduits_sf = conduits_u, 
+                min_slope = min_slope, 
+                max_slope = max_slope, 
+                outfalls = outfalls, 
+                main = "slopes before adjustment")
 
     # correct slopes and junction depths in the range min/max slope and junction depth
-    list_slope_adjustments <- adjustSlopesAndJuncDepths(conduits = conduits_u, junctions = junctions_u, outfall = outfalls,
-                                           min_slope = min_slope, max_slope = max_slope,
-                                           min_junc_depth = min_junc_depth, max_junc_depth = max_junc_depth,
-                                           mean_junc_depth = mean_junc_depth)
+    list_slope_adjustments <- adjustSlopesAndJuncDepths(conduits = conduits_u, 
+                                                        junctions = junctions_u, 
+                                                        outfall = outfalls,
+                                                        min_slope = min_slope, 
+                                                        max_slope = max_slope,
+                                                        min_junc_depth = min_junc_depth, 
+                                                        max_junc_depth = max_junc_depth,
+                                                        mean_junc_depth = mean_junc_depth)
     outfalls <- list_slope_adjustments$outfall
     junctions_u <- list_slope_adjustments$junctions
     conduits_u <- list_slope_adjustments$conduits
 
     # calculate final slopes ..
-    conduits_u$Slope <- calculateSlope(junctions = junctions_u, conduits_sf = conduits_u, outfall = outfalls)
+    conduits_u$Slope <- calculateSlope(junctions = junctions_u, 
+                                       conduits_sf = conduits_u, 
+                                       outfall = outfalls)
     # plot slopes ...
     graphics::boxplot(conduits_u$Slope, main = "conduit slopes after adjustment")
-    graphics::boxplot(junctions_u$Top - junctions_u$Bottom, main = "junction depths after slope adjustment")
-    plot_slopes(junctions = junctions_u, conduits_sf = conduits_u, min_slope = min_slope, max_slope = max_slope, outfalls = outfalls, main = "slopes after adjustment")
+    graphics::boxplot(junctions_u$Top - junctions_u$Bottom, 
+                      main = "junction depths after slope adjustment")
+    
+    plot_slopes(junctions = junctions_u, 
+                conduits_sf = conduits_u, 
+                min_slope = min_slope, 
+                max_slope = max_slope, 
+                outfalls = outfalls, 
+                main = "slopes after adjustment")
 
     message("12. Slopes and junction depths are adjusted within the given range (min_junc_depth, max_junc_depth, min_slope, max_slope) ")
 
@@ -412,7 +632,9 @@ create_drainage_network <- function(streets, dtm, outfalls, crs_default , buffer
     message("13. missing default parameters are added")
 
     #### return ####
-    return(list(junctions = junctions_u, conduits = conduits_u, outfalls = outfalls))
+    return(list(junctions = junctions_u, 
+                conduits = conduits_u, 
+                outfalls = outfalls))
 
   }
 

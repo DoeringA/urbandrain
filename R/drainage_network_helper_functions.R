@@ -1,9 +1,13 @@
 #' euclidean norm vector
 #' @keywords internal
+#' @noMd
+#' @noRd
 norm_vec <- function(x) sqrt(sum(x^2))
 
 #' Finds point in distance di from point p0 in direction of point p1
 #' @keywords internal
+#' @noMd
+#' @noRd
 new_point <- function(p0, p1, di) {
   v = p1 - p0
   u = v / norm_vec(v)
@@ -12,6 +16,8 @@ new_point <- function(p0, p1, di) {
 
 #' tag nodes during creation of junctions
 #' @keywords internal
+#' @noMd
+#' @noRd
 tag_nodes <- function(street_vertices){
 
   #### tag start and end points as fixpoints ####
@@ -77,6 +83,9 @@ tag_nodes <- function(street_vertices){
 
 #' add a new point to an existing street
 #' @keywords internal
+#' @noMd
+#' @noRd
+#' @importFrom sf st_distance
 add_point_to_street <- function(point_to_add, street_vertices){
   points_in_street <- street_vertices[street_vertices$L1 == point_to_add$nearest_street,]
 
@@ -106,6 +115,10 @@ add_point_to_street <- function(point_to_add, street_vertices){
 
 #' create polylines from point data
 #' @keywords internal
+#' @noMd
+#' @noRd
+#' @importFrom dplyr summarize group_by
+#' @importFrom sf st_cast
 create_linestrings_from_vertices <- function(vertices){
   conduits <- list()
 
@@ -118,7 +131,8 @@ create_linestrings_from_vertices <- function(vertices){
     for(j in 1:(length(street$L2)-1)){
       # create linestrings
       conduit <- street[c(j,j+1),"L2"]
-      conduit <- dplyr::summarize(dplyr::group_by(conduit, L2), .groups = "drop_last")
+      conduit <- dplyr::summarize(dplyr::group_by(conduit, L2), 
+                                  .groups = "drop_last")
       # store as linestring...
       conduits[[i]][[j]] <- sf::st_cast(conduit,"LINESTRING")
     }
@@ -136,6 +150,10 @@ create_linestrings_from_vertices <- function(vertices){
 
 #' create polylines from point data
 #' @keywords internal
+#' @noMd
+#' @noRd
+#' @importFrom dplyr summarize group_by
+#' @importFrom sf st_cast
 create_linestrings_from_single_layer <- function(new_segment){
   new_linestring <- list()
 
@@ -153,7 +171,22 @@ create_linestrings_from_single_layer <- function(new_segment){
 
 #' create junctions based on street polylines
 #' @keywords internal
-create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_depth, dtm, crs_default, pre_def_junctions, pre_def_conduits){
+#' @noMd
+#' @noRd
+#' @importFrom sf st_geometry st_coordinates st_as_sf st_distance st_intersection 
+#' st_collection_extract 
+#' @importFrom gstat idw
+#' @importFrom graphics plot
+create_junctions <- function(streets, 
+                             buffer, 
+                             snap_dist, 
+                             epsilon, 
+                             lim, 
+                             junc_depth, 
+                             dtm, 
+                             crs_default, 
+                             pre_def_junctions, 
+                             pre_def_conduits){
 
   # plot initial data:
   graphics::plot(sf::st_geometry(streets), col = "grey", main = "street polylines")
@@ -179,7 +212,9 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
   }
 
   # sf of street coordinates
-  street_vertices <- sf::st_as_sf(coords_streets, coords = c("X", "Y"), crs = crs_default)
+  street_vertices <- sf::st_as_sf(coords_streets, 
+                                  coords = c("X", "Y"), 
+                                  crs = crs_default)
 
   # summarize points within a buffer:
   coords_streets$buf <- NA
@@ -204,22 +239,34 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
 
     }
 
-    street_vertices <- sf::st_as_sf(coords_streets, coords = c("X", "Y"), crs = crs_default)
+    street_vertices <- sf::st_as_sf(coords_streets, 
+                                    coords = c("X", "Y"), 
+                                    crs = crs_default)
 
   }
 
-  street_vertices <- sf::st_as_sf(coords_streets, coords = c("X", "Y"), crs = crs_default)
+  street_vertices <- sf::st_as_sf(coords_streets, 
+                                  coords = c("X", "Y"), 
+                                  crs = crs_default)
 
   # plot buffered vertices:
-  graphics::plot(sf::st_geometry(streets), col = "grey", main = "buffered vertices")
-  graphics::plot(sf::st_geometry(street_vertices[street_vertices$buf == T,]), col = "red", add = T)
+  graphics::plot(sf::st_geometry(streets), 
+                 col = "grey", 
+                 main = "buffered vertices")
+  graphics::plot(sf::st_geometry(street_vertices[street_vertices$buf == T,]), 
+                 col = "red", 
+                 add = T)
 
   # tag nodes for further aggregation:
   street_vertices <- tag_nodes(street_vertices)
 
   # plot initial fix points:
-  graphics::plot(sf::st_geometry(streets), col = "grey", main = "initial fix points")
-  graphics::plot(sf::st_geometry(street_vertices[street_vertices$tag == "fp",]), col = "red", add = T)
+  graphics::plot(sf::st_geometry(streets), 
+                 col = "grey", 
+                 main = "initial fix points")
+  graphics::plot(sf::st_geometry(street_vertices[street_vertices$tag == "fp",]), 
+                 col = "red", 
+                 add = T)
 
   # delete points that occur twice in one layer:
   for(i in unique(street_vertices$L1)){
@@ -270,8 +317,12 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
   }
 
   # plot connections between near polylines:
-  graphics::plot(sf::st_geometry(streets), col = "grey", main = "missing connections")
-  graphics::plot(sf::st_geometry(street_vertices[is.na(street_vertices$nearest_street) == F,]), col = "red", add = T)
+  graphics::plot(sf::st_geometry(streets), 
+                 col = "grey", 
+                 main = "missing connections")
+  graphics::plot(sf::st_geometry(street_vertices[is.na(street_vertices$nearest_street) == F,]), 
+                 col = "red", 
+                 add = T)
 
   # find position to add point and add it to nearest line:
   con_name <- street_vertices$Name[which(is.na(street_vertices$nearest_street) == F)]
@@ -284,7 +335,8 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
     point_to_add$tag <- NA
 
     # add point to data:
-    street_vertices <- add_point_to_street(point_to_add = point_to_add, street_vertices)
+    street_vertices <- add_point_to_street(point_to_add = point_to_add, 
+                                           street_vertices)
 
   }
 
@@ -292,8 +344,12 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
   street_vertices <- tag_nodes(street_vertices)
 
   # plot crossings:
-  graphics::plot(sf::st_geometry(streets), col = "grey", main = "connections/crossings")
-  graphics::plot(sf::st_geometry(street_vertices[street_vertices$con == T,]), col = "red", add = T)
+  graphics::plot(sf::st_geometry(streets), 
+                 col = "grey", 
+                 main = "connections/crossings")
+  graphics::plot(sf::st_geometry(street_vertices[street_vertices$con == T,]), 
+                 col = "red", 
+                 add = T)
 
   # add point at intersection of polylines:
   # intersect street polylines and identify crossings:
@@ -850,6 +906,7 @@ correct_artificial_outfalls <- function(junctions, conduits_sf){
 
 #' correct sinks
 #' @keywords internal
+#' @importFrom stats runif
 correct_sinks <- function(junctions, conduits_sf, outfalls, short_cut_sinks, direct_drainage_sinks, ds){
 
   sink_at_end <- NULL
@@ -948,7 +1005,7 @@ correct_sinks <- function(junctions, conduits_sf, outfalls, short_cut_sinks, dir
                 new_outfall_name <- paste0("n_",name_nearest_outfall)
                 outfalls <- rbind(outfalls, outfalls[outfalls$Name == name_nearest_outfall,])
                 outfalls[nrow(outfalls),"Name"] <- new_outfall_name
-                outfalls[nrow(outfalls),"geometry"] <- outfalls[nrow(outfalls),"geometry"] + runif(1, min = 0, max = 2)
+                outfalls[nrow(outfalls),"geometry"] <- outfalls[nrow(outfalls),"geometry"] + stats::runif(1, min = 0, max = 2)
 
                 new_conduit <- rbind(outfalls[nrow(outfalls),"Name"], junctions[junctions$Name == sink,"Name"])
                 new_conduit <- dplyr::summarize(new_conduit, .groups = "drop_last")
@@ -1258,7 +1315,13 @@ adjustSlopesAndJuncDepths <- function(conduits, junctions, outfall, min_slope, m
 
 #' breaks in network
 #' @keywords internal
-breaks_in_network <- function(break_closed_loops, break_loops, breaks_at_hills, delete_disconnected, junctions, outfalls, conduits_sf){
+breaks_in_network <- function(break_closed_loops, 
+                              break_loops, 
+                              breaks_at_hills, 
+                              delete_disconnected, 
+                              junctions, 
+                              outfalls, 
+                              conduits_sf){
   if(break_closed_loops){
     #### if an stack overflow occurs because of closed loops in the network devide network as follows: ####
     # remember skipped conduits:

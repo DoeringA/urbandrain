@@ -14,23 +14,41 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Which input data is needed to run the drainage network generator?
 
-The stormwater drainage network generator provided by the urbandrain package uses open source input data. The following data can be extracted from open source data bases:
+The stormwater drainage network generator provided by the `urbandrain` package uses 
+open source input data. The following data can be extracted from open source data 
+bases:
 
-- street polyline data (**streets**) for example from open street maps (OSM): https://www.openstreetmap.de/
-- land use information (**landuse**) for example extracted from open street maps (OSM): https://www.openstreetmap.de/
-- a digital terrain model (**dtm**) for example from the shuttle radar topography mission (SRTM): https://www.opendem.info/download_srtm.html
-- rain timeseries (**path_raintimeseries**) for example from the Climate Data Center provided by the DWD: https://opendata.dwd.de/climate_environment/CDC/
+- street polyline data (**streets**) for example from open street maps (OSM): 
+https://www.openstreetmap.de/
 
-Additionally the follwing input data is needed. These input data require some basic knowledge of the model site:
+- land use information (**landuse**) for example extracted from open street maps 
+(OSM): https://www.openstreetmap.de/
+- a digital terrain model (**dtm**) for example from the shuttle radar topography 
+mission (SRTM): https://www.opendem.info/download_srtm.html
+
+- rain timeseries (**path_raintimeseries**) for example from the Climate Data
+Center provided by the DWD: https://opendata.dwd.de/climate_environment/CDC/
+
+Additionally the follwing input data is needed. These input data require some 
+basic knowledge of the model site:
 
 - Outfall points (**outfalls**) to which the network drains to.
-- A boundary polygon (**boundary_polygon**) around the outfall catchment or catchments.
-- A minimum distance value (**lim**) between street nodes (unit: meter). For example mean distance between inspection shafts.
-- A range within the junctions dephts are allowed to vary (**min_junc_depth**, **mean_junc_depth**, **max_junc_depth**).
-- A range within the pipe slopes are allowed to vary, based on the terrain (**min_slope**, **max_slope**).
+
+- A boundary polygon (**boundary_polygon**) around the outfall catchment or
+catchments.
+
+- A minimum distance value (**lim**) between street nodes (unit: meter). For 
+example mean distance between inspection shafts.
+
+- A range within the junctions dephts are allowed to vary (**min_junc_depth**, 
+**mean_junc_depth**, **max_junc_depth**).
+
+- A range within the pipe slopes are allowed to vary, based on the terrain 
+(**min_slope**, **max_slope**).
 
 
 ## How do I extract open source data and how do I process them?
+
 In this example data is extracted for the example case provided by this package:
 
 ```{r load_package_data}
@@ -45,7 +63,7 @@ boundary_polygon <- ex1$boundary_polygon
 
 ### Download street and landuse data from OSM and process them:
 
-```{r osm_data_processing, warning=FALSE, message=FALSE}
+```{r osm_data_processing}
 # rectangular area for OSM extraction:
 coords <- as.data.frame(sf::st_coordinates(boundary_polygon))
 min_x <- min(coords$X)
@@ -104,29 +122,47 @@ landuse_complete <- rbind(op1, op2)
 plot(landuse_complete)
 
 # additionally a data.frame specifying the imperviousness of the landuse classes is needed, for example:
-landuse_classes <- data.frame(class = unique(landuse_complete$landuse), imperviousness = c(0.4,0,1))
+landuse_classes <- data.frame(class = unique(landuse_complete$landuse), 
+                              imperviousness = c(0.4, 0, 0, 1, 0.5))
 landuse_classes
 
 ```
 
-### Processing of DTM data from SRTM:
+### Processing of DTM data from SRTM
+
 Download the SRTM Digital Terrain Model of Germany from https://www.opendem.info/download_srtm.html.
 
-```{r srtm_dtm_processing, eval = F}
+
+```{r srtm_dtm_processing}
+dtm_url <- "https://www.opendem.info/downloads/srtm_germany_dtm.zip"
+dtm_zip_path <- file.path(tempdir(), basename(dtm_url))
+dtm_dir <- file.path(tempdir(), "srtm")
+
+download.file(dtm_url, 
+              destfile = dtm_zip_path)
+archive::archive_extract(archive = dtm_zip_path, 
+                         dir = dtm_dir)
+
 # download srtm data and load data to R:
-dtm_path <- "path to srtm data"
+dtm_path <- fs::path_norm(list.files(dtm_dir, 
+                                     recursive = TRUE, 
+                                     full.names = TRUE))
+
 
 # load srtm tif:
 dtm_germany <- raster::raster(dtm_path)
 
 # cut raster extent to boundary_polygon:
 dtm <- raster::intersect(dtm_germany, boundary_polygon)
-
+dtm
 # if needed: interpolate to get a finer raster resolution:
 dtm_fine <- raster::disaggregate(dtm, fact = 10, method = "bilinear")
 
 
 ```
 
-### Further parameters:
-To see the structure of further input parameters view ex1 example data, vignette [How to built a drainage network model using urbandrain](How_to_built_a_drainage_network_model_using_urbandrain.html) or the documentation of the functions create_swmm_model and create_drainage_network.
+### Further parameters
+
+To see the structure of further input parameters view ex1 example data, vignette 
+[How to built a drainage network model using urbandrain](../How_to_built_a_drainage_network_model_using_urbandrain.html) 
+or the documentation of the functions `create_drainage_network()` and `create_swmm_model()`.

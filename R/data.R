@@ -1,17 +1,24 @@
 #' Example data to run create_swmm_model
 #'
-#' @source This example file includes SRTM data downloaded from \url{https://www.opendem.info/download_srtm.html} and open street maps data \url{https://www.openstreetmap.de/}
+#' @source This example file includes SRTM data downloaded from 
+#' \url{https://www.opendem.info/download_srtm.html} and open street maps data 
+#' \url{https://www.openstreetmap.de/}
 #'
 #' @format A list with different objects:
 #' \describe{
 #'  \item{boundary_polygon}{A polygon of class sf defining the model borders.}
 #'  \item{streets}{Street polyline data of class sf. Data extracted from OSM.}
-#'  \item{landuse}{A polygon of class sf including landuse informations. Data extracted from OSM.}
-#'  \item{landuse_classes}{A data.frame including percentages of imperviousness of the different landuse classes.}
-#'  \item{dtm}{A digital terrain model of class RasterLayer. Data extracted from SRTM.}
+#'  \item{landuse}{A polygon of class sf including landuse informations. Data 
+#'  extracted from OSM.}
+#'  \item{landuse_classes}{A data.frame including percentages of imperviousness 
+#'  of the different landuse classes.}
+#'  \item{dtm}{A digital terrain model of class RasterLayer. Data extracted from 
+#'  SRTM.}
 #'  \item{outfall}{Outfall point data of class sf.}
-#'  \item{infiltration}{A data.frame specifying infiltration information for soil classes. Default parameters for sandy soil.}
-#'  \item{network_parameters}{A data frame containing further network parameters. For further explanation view the documentation of function create_swmm_model}
+#'  \item{infiltration}{A data.frame specifying infiltration information for soil 
+#'  classes. Default parameters for sandy soil.}
+#'  \item{network_parameters}{A data frame containing further network parameters. 
+#'  For further explanation view the documentation of function create_swmm_model}
 #' }
 #' @examples
 #' \dontrun{
