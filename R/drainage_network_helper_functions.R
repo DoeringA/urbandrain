@@ -1855,7 +1855,7 @@ thiessen_to_subcatchments <- function(landuse_sf = NULL, landuse_classes = NULL,
 #' @return A sf object containing polylines with all attributes needed for the conduit section in SWMM's input file.
 #' @export
 #' @rdname pipeSizingAlgorithm
-pipeSizingAlgorithm <- function(inp, path_out, conduits_sf, junctions, outfalls, target, DN_start = 300, rpt_filename = "artificial_SWMM_model.rpt", inp_filename = "artificial_SWMM_model.inp", link_filename = "links_artificial_SWMM_format.shp"){
+pipeSizingAlgorithm <- function(inp, path_out, conduits_sf, junctions, outfalls, target, DN_start = 300, rpt_filename = "artificial_SWMM_model.rpt", inp_filename = "artificial_SWMM_model.inp", link_filename = "links_artificial_SWMM_format.shp", swmm5_exec){
 
   # Nennweiten [m]:
   DN_mm <- c(100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1800, 2000,
@@ -1891,7 +1891,7 @@ pipeSizingAlgorithm <- function(inp, path_out, conduits_sf, junctions, outfalls,
 
       # save and run the model
       swmmr::write_inp(inp, file.path(path_out, inp_filename))
-      swmmr::run_swmm(file.path(path_out, inp_filename))
+      swmmr::run_swmm(file.path(path_out, inp_filename),exec = swmm5_exec)
 
       # next pipe diameter
       s <- s + 1
@@ -1931,7 +1931,7 @@ pipeSizingAlgorithm <- function(inp, path_out, conduits_sf, junctions, outfalls,
 
       # save and run the model
       swmmr::write_inp(inp, file.path(path_out, inp_filename))
-      swmmr::run_swmm(file.path(path_out, inp_filename))
+      swmmr::run_swmm(file.path(path_out, inp_filename),exec = swmm5_exec)
 
       # next pipe diameter
       s <- s + 1

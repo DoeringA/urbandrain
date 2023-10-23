@@ -30,11 +30,12 @@
 #' @param path_options Path to an option file specifying swmm options. See \link[swmmr]{shp_to_inp}
 #' @param infiltration A data.frame specifying infiltration information for soil classes. Currently, homogenous soil for the model area is assumed.
 #' @param path_out Directory to store the swmm input file and the model data in shp format to.
+#' @param swmm5_exec Name and path to swmm5 executable
 #' @return A list of sf objects junctions, conduits, outfalls and subcatchments.
 #' @export
 #' @rdname create_drainage_network
 
-create_swmm_model <- function(streets, dtm, outfalls, crs_default, buffer, snap_dist, epsilon, lim,  min_junc_depth, mean_junc_depth, max_junc_depth,  min_slope, max_slope, ds, stepwise = T, break_closed_loops = F, delete_disconnected = F, breaks_at_hills = F, break_loops = F,  short_cut_sinks = F, direct_drainage_sinks = T, boundary_polygon, landuse_sf, landuse_classes, path_timeseries, path_options, infiltration, path_out){
+create_swmm_model <- function(streets, dtm, outfalls, crs_default, buffer, snap_dist, epsilon, lim,  min_junc_depth, mean_junc_depth, max_junc_depth,  min_slope, max_slope, ds, stepwise = T, break_closed_loops = F, delete_disconnected = F, breaks_at_hills = F, break_loops = F,  short_cut_sinks = F, direct_drainage_sinks = T, boundary_polygon, landuse_sf, landuse_classes, path_timeseries, path_options, infiltration, path_out, swmm5_exec){
 
 
   #... create drainage network
@@ -78,10 +79,10 @@ create_swmm_model <- function(streets, dtm, outfalls, crs_default, buffer, snap_
   swmmr::write_inp(inp, file.path(path_out, "artificial_SWMM_model.inp"))
 
   # ... run swmm
-  swmmr::run_swmm(file.path(path_out, "artificial_SWMM_model.inp"))
+  swmmr::run_swmm(file.path(path_out, "artificial_SWMM_model.inp"), exec = swmm5_exec)
 
   # ... pipe sizing algorithm
-  conduits_sized <- pipeSizingAlgorithm(inp, path_out, conduits, junctions, outfalls, target = "conduit_surcharge")
+  conduits_sized <- pipeSizingAlgorithm(inp, path_out, conduits, junctions, outfalls, target = "conduit_surcharge", swmm5_exec = swmm5_exec)
 
   # # ... save shp of sized pipes
   # sf::st_write(conduits_sized, file.path(path_out, "final_links_artificial_SWMM_format.shp"))
