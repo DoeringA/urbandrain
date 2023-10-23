@@ -120,9 +120,11 @@ add_point_to_street <- function(point_to_add, street_vertices){
 #' @keywords internal
 create_linestrings_from_vertices <- function(vertices){
   conduits <- list()
+  
+  layer_id <- unique(vertices$L2)
 
   # create line strings
-  for (i in 1:length(unique(vertices$L2))){
+  for (i in layer_id){
     # subset data based on street
     street <- vertices[vertices$L2 == i,]
     conduits[[i]] <- list()
@@ -138,7 +140,7 @@ create_linestrings_from_vertices <- function(vertices){
 
   # unlist conduits
   conduits_L <- list()
-  for( i in 1:length(conduits)){
+  for( i in layer_id){
     conduits_L[[i]] <- do.call(rbind, conduits[[i]])
   }
   conduits_sf_simple <- do.call(rbind, conduits_L)
@@ -162,6 +164,66 @@ create_linestrings_from_single_layer <- function(new_segment){
 
   return(new_linestring)
 }
+
+#' Helper function for function DouglasPeuckerEpsilon copied from kmlShape Package
+#' @keywords internal
+shortestDistanceToLines <- function(Mx,My,Ax,Ay,Bx,By){
+  aire <- abs((By-Ay)*(Mx-Ax)-(Bx-Ax)*(My-Ay))
+  return(  aire / sqrt((Bx-Ax)^2 + (By-Ay)^2))
+}
+
+#' Helper function for function DouglasPeuckerEpsilon copied from kmlShape package
+#' @keywords internal
+findFarestPoint <- function(trajx,trajy){
+  dmax <- 0
+  index <- 1
+  end <- length(trajx)
+  
+  if(end==2){
+    index <- 1
+    dmax <- 0
+  }else{
+    for(i in 2:(end-1)){
+      d <- shortestDistanceToLines(Mx=trajx[i],My=trajy[i], Ax=trajx[1],Ay=trajy[1], Bx=trajx[end],By=trajy[end])
+      if ( d > dmax ) {
+        index <- i
+        dmax <- d
+      }else{}
+    }
+  }
+  return(c(index=index,dmax=dmax))
+}
+
+
+#' DouglasPeuckerEpsilon function is copied from the kmlShape Package which is no longer supported
+#' @keywords internal
+DouglasPeuckerEpsilon <- function(trajx,trajy,epsilon,spar=NA){
+  missings <- is.na(trajx)|is.na(trajy)
+  if(any(missings)){
+    trajx <- trajx[!missings]
+    trajy <- trajy[!missings]
+  }else{}
+  
+  if(!is.na(spar)){trajy <- smooth.spline(trajx,trajy,spar=spar)[["y"]]}else{}
+  
+  farestPoint <- findFarestPoint(trajx,trajy)
+  index <- farestPoint["index"]
+  end <- length(trajx)
+  if ( farestPoint["dmax"] > epsilon ) {
+    recResults1 = DouglasPeuckerEpsilon(trajx[1:index],trajy[1:index], epsilon)
+    recResults2 = DouglasPeuckerEpsilon(trajx[index:end],trajy[index:end], epsilon)
+    
+    resultTrajx = c(recResults1$x,recResults2$x[-1])
+    resultTrajy = c(recResults1$y,recResults2$y[-1])
+    #        d = c(farestPoint["dmax"],recResults1$d,recResults2$d)
+  } else {
+    resultTrajx = c(trajx[1],trajx[end])
+    resultTrajy = c(trajy[1],trajy[end])
+    #        d=numeric()
+  }
+  return(data.frame(x=resultTrajx,y=resultTrajy))
+}
+
 
 #' create junctions based on street polylines
 #' @keywords internal
@@ -282,7 +344,7 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
     dist <- as.numeric(sf::st_distance(street_vertices[i,], streets))
     min_value <- min(dist[dist > 0])
     if(min_value < snap_dist){
-      street_vertices$nearest_street[i] <- which(dist == min_value)
+      street_vertices$nearest_street[i] <- which(dist == min_value)[1]
     }
   }
 
@@ -397,56 +459,57 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
   
   # summaries polylines sharing start and end nodes (connected fixpoints, no crossings)
   vertices_to_summaries <- street_vertices$Name[street_vertices$con == "TRUE" & street_vertices$Name != "crossing" & !is.na(street_vertices$tag_order)]
-  
-  for( i in unique(vertices_to_summaries)){
-    
-    # combine only two terminating points (start/end):
-    if(any(is.na(street_vertices$tag_order[street_vertices$Name ==  i]))){
-      next
-    }else{
-      layers_to_summarize <- street_vertices$L2[street_vertices$Name == i]
-      
-      segment_to_shift <- street_vertices[street_vertices$L2 == max(layers_to_summarize),]
-      segment_to_connect <- street_vertices[street_vertices$L2 == min(layers_to_summarize),]
-      
-      
-      # check order of vertices
-      if(all(street_vertices$tag_order[street_vertices$Name ==  i] == c("start", "start"))){
-        # shift vertices of connecting segment (starting from second vertex) in reverse order above the connecting vertex
-        combined_segments <- rbind(segment_to_shift[nrow(segment_to_shift):2,], segment_to_connect)
+
+  if(!is.null(vertices_to_summaries)){
+    for( i in unique(vertices_to_summaries)){
+
+      # combine only two terminating points (start/end):
+      if(any(is.na(street_vertices$tag_order[street_vertices$Name ==  i]))){
+        next
+      }else{
+        layers_to_summarize <- street_vertices$L2[street_vertices$Name == i]
+
+        segment_to_shift <- street_vertices[street_vertices$L2 == max(layers_to_summarize),]
+        segment_to_connect <- street_vertices[street_vertices$L2 == min(layers_to_summarize),]
+
+
+        # check order of vertices
+        if(all(street_vertices$tag_order[street_vertices$Name ==  i] == c("start", "start"))){
+          # shift vertices of connecting segment (starting from second vertex) in reverse order above the connecting vertex
+          combined_segments <- rbind(segment_to_shift[nrow(segment_to_shift):2,], segment_to_connect)
+        }
+
+        if(all(street_vertices$tag_order[street_vertices$Name ==  i] == c("start", "end"))){
+          # shift vertices of connecting segment above the connecting vertex and keep order
+          combined_segments <- rbind(segment_to_shift[1:(nrow(segment_to_shift)-1),], segment_to_connect)
+        }
+
+        if(all(street_vertices$tag_order[street_vertices$Name ==  i] == c("end", "start"))){
+          # keep order but delete duplicated vertex
+          combined_segments <- rbind(segment_to_connect, segment_to_shift[2:nrow(segment_to_shift),])
+        }
+
+        if(all(street_vertices$tag_order[street_vertices$Name ==  i] == c("end", "end"))){
+          # shift vertices of connecting segment in reverse order below the connecting vertex
+          combined_segments <- rbind(segment_to_connect, segment_to_shift[(nrow(segment_to_shift)-1):1,])
+        }
+
+        # update layer id
+        combined_segments$L2 <- min(layers_to_summarize)
+
+        # delete segments from complete dataset
+        street_vertices <- street_vertices[!street_vertices$L2 %in% layers_to_summarize,]
+
+        # rbind segments with complete dataset
+        street_vertices <- rbind(street_vertices, combined_segments)
+
+        # update tag order
+        street_vertices <- define_tag_order(street_vertices)
+
       }
-      
-      if(all(street_vertices$tag_order[street_vertices$Name ==  i] == c("start", "end"))){
-        # shift vertices of connecting segment above the connecting vertex and keep order
-        combined_segments <- rbind(segment_to_shift[1:(nrow(segment_to_shift)-1),], segment_to_connect)
-      }
-      
-      if(all(street_vertices$tag_order[street_vertices$Name ==  i] == c("end", "start"))){
-        # keep order but delete duplicated vertex
-        combined_segments <- rbind(segment_to_connect, segment_to_shift[2:nrow(segment_to_shift),])
-      }
-      
-      if(all(street_vertices$tag_order[street_vertices$Name ==  i] == c("end", "end"))){
-        # shift vertices of connecting segment in reverse order below the connecting vertex
-        combined_segments <- rbind(segment_to_connect, segment_to_shift[(nrow(segment_to_shift)-1):1,])
-      }
-      
-      # update layer id
-      combined_segments$L2 <- min(layers_to_summarize)
-      
-      # delete segments from complete dataset
-      street_vertices <- street_vertices[!street_vertices$L2 %in% layers_to_summarize,]
-      
-      # rbind segments with complete dataset
-      street_vertices <- rbind(street_vertices, combined_segments)
-      
-      # update tag order
-      street_vertices <- define_tag_order(street_vertices)
-      
     }
   }
   
-
   #### Simplify shape of network: ####
   message(" ... simplify the shape of the network (Douglas-Peucker Algorithm)")
 
@@ -463,7 +526,7 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
     segment <- coords_streets[coords_streets$L2 == L,]
 
     # Douglas-Peucker line simplification algorithm:
-    simplified_segment <- kmlShape::DouglasPeuckerEpsilon(trajx = segment$X, trajy = segment$Y, epsilon = epsilon)
+    simplified_segment <- DouglasPeuckerEpsilon(trajx = segment$X, trajy = segment$Y, epsilon = epsilon)
 
     # add point in lim distance if necessary:
 
@@ -663,7 +726,10 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
   }
 
   if(is.null(pre_def_junctions)){
-    conduits_sf_simple <- create_linestrings_from_vertices(vertices = street_vertices_simplified)
+    #conduits_sf_simple <- create_linestrings_from_vertices(vertices = street_vertices_simplified)
+    
+    conduits_sf_simple <-  dplyr::summarise(dplyr::group_by(street_vertices_simplified, L2), do_union = FALSE)
+    conduits_sf_simple <- sf::st_cast(conduits_sf_simple, "LINESTRING")
 
     # plot progress...
     graphics::plot(sf::st_geometry(streets), col = "grey", main = "first try of new polylines")
@@ -761,9 +827,10 @@ add_junction_heights <- function(junctions, dtm){
 create_conduits_along_topography <- function(vertices, main){
 
   conduits <- list()
+  layer_id <- unique(vertices$L1)
 
   # create line strings
-  for (i in 1:length(unique(vertices$L1))){
+  for (i in layer_id){
     # subset data based on street
     street <- vertices[vertices$L1 == i,]
     conduits[[i]] <- list()
@@ -771,7 +838,7 @@ create_conduits_along_topography <- function(vertices, main){
     for(j in 1:(length(street$L1)-1)){
       # create linestrings
       conduit <- street[c(j,j+1),"L1"]
-      conduit <- dplyr::summarize(dplyr::group_by(conduit, L1), .groups = "drop_last")
+      conduit <- dplyr::summarise(dplyr::group_by(conduit, L1), do_union = FALSE)
       conduit <- sf::st_cast(conduit, "LINESTRING")
 
       # define flow directions add FromNode and ToNode
@@ -790,7 +857,7 @@ create_conduits_along_topography <- function(vertices, main){
 
   # unlist conduits
   conduits_L <- list()
-  for( i in 1:length(conduits)){
+  for( i in layer_id){
     conduits_L[[i]] <- do.call(rbind, conduits[[i]])
   }
   conduits_sf <- do.call(rbind, conduits_L)
@@ -1722,7 +1789,7 @@ thiessen_to_subcatchments <- function(landuse_sf = NULL, landuse_classes = NULL,
       # calculate percentage of impervious area per thiessen polygon:
       for(id in thiessen_polygons$ID){
         sel <- landuse_thiessen[landuse_thiessen$ID == id,]
-        thiessen_polygons$PercImperv[id] <- sum(sel$area_landuse * sel$factor_imperv)/sel$area[1] * 100
+        thiessen_polygons$PercImperv[thiessen_polygons$ID == id] <- sum(sel$area_landuse * sel$factor_imperv)/sel$area[1] * 100
       }
 
     }else{
