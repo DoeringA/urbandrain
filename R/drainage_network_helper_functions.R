@@ -767,8 +767,8 @@ create_junctions <- function(streets, buffer, snap_dist, epsilon, lim, junc_dept
   }
 
   if(!is.null(pre_def_junctions)){
-    # keep only unique rows:
-    junctions <- dplyr::distinct(junctions, .keep_all = T)
+    # keep only unique geometries:
+    junctions <- dplyr::distinct(junctions, across(geometry), .keep_all = T)
 
   }
 
