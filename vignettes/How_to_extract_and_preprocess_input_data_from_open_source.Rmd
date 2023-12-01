@@ -21,12 +21,12 @@ The stormwater drainage network generator provided by the urbandrain package use
 - a digital terrain model (**dtm**) for example from the shuttle radar topography mission (SRTM): https://www.opendem.info/download_srtm.html
 - rain timeseries (**path_raintimeseries**) for example from the Climate Data Center provided by the DWD: https://opendata.dwd.de/climate_environment/CDC/
 
-Additionally the follwing input data is needed. These input data require some basic knowledge of the model site:
+Additionally the following input data is needed. These input data require some basic knowledge of the model site:
 
 - Outfall points (**outfalls**) to which the network drains to.
 - A boundary polygon (**boundary_polygon**) around the outfall catchment or catchments.
 - A minimum distance value (**lim**) between street nodes (unit: meter). For example mean distance between inspection shafts.
-- A range within the junctions dephts are allowed to vary (**min_junc_depth**, **mean_junc_depth**, **max_junc_depth**).
+- A range within the junctions depths are allowed to vary (**min_junc_depth**, **mean_junc_depth**, **max_junc_depth**).
 - A range within the pipe slopes are allowed to vary, based on the terrain (**min_slope**, **max_slope**).
 
 
@@ -104,7 +104,7 @@ landuse_complete <- rbind(op1, op2)
 plot(landuse_complete)
 
 # additionally a data.frame specifying the imperviousness of the landuse classes is needed, for example:
-landuse_classes <- data.frame(class = unique(landuse_complete$landuse), imperviousness = c(0.4,0,1))
+landuse_classes <- data.frame(class = unique(landuse_complete$landuse), imperviousness = c(0.5,0,0,1,1))
 landuse_classes
 
 ```

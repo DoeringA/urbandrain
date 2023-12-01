@@ -25,7 +25,7 @@ The package includes an example case containing input information and the final 
 ```{r load_package_data, message=FALSE, warning=F, fig.keep = "last", out.width = '150%'}
 # install required packages:
 library(urbandrain)
-remotes::install_github("DoeringA/swmmr@read_sf_to_inp")
+remotes::install_github("dleutnant/swmmr@dev")
 
 # load example dataset containing input data:
 data(ex1, package = "urbandrain")
@@ -70,7 +70,8 @@ network_list <- create_swmm_model(
   path_timeseries = system.file("extdata", "default_rain.dat", package = "urbandrain"),
   path_options = system.file("extdata", "options.txt", package = "urbandrain"),
   infiltration = ex1$infiltration,
-  path_out = path_out_temp
+  path_out = path_out_temp,
+  swmm5_exec = "C:/Program Files/EPA SWMM 5.2.4 (64-bit)/runswmm.exe" # default directory under windows
 )
 
 # show summary of the final artificially generated drainage network:

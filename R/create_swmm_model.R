@@ -33,7 +33,7 @@
 #' @param swmm5_exec Name and path to swmm5 executable
 #' @return A list of sf objects junctions, conduits, outfalls and subcatchments.
 #' @export
-#' @rdname create_drainage_network
+#' @rdname create_swmm_model
 
 create_swmm_model <- function(streets, dtm, outfalls, crs_default, buffer, snap_dist, epsilon, lim,  min_junc_depth, mean_junc_depth, max_junc_depth,  min_slope, max_slope, ds, stepwise = T, break_closed_loops = F, delete_disconnected = F, breaks_at_hills = F, break_loops = F,  short_cut_sinks = F, direct_drainage_sinks = T, boundary_polygon, landuse_sf, landuse_classes, path_timeseries, path_options, infiltration, path_out, swmm5_exec){
 

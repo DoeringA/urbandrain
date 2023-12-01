@@ -14,7 +14,6 @@ Imports:
   deldir (>= 0.1-29),
   dplyr (>= 1.0.2),
   gstat (>= 2.0-6),
-  kmlShape (>= 0.9.5),
   raster (>= 3.3-13),
   sf (>= 0.9-6),
   swmmr (>= 0.9.1),

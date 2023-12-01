@@ -32,7 +32,7 @@ path_options <- system.file("extdata", "options.txt", package = "urbandrain")
 ```{r create_swmm_model, warning = F, message = F, fig.keep = "none", out.width = '150%'}
 
 # load swmmr package from github:
-remotes::install_github("DoeringA/swmmr@read_sf_to_inp")
+remotes::install_github("dleutnant/swmmr@dev")
 
 # define a directory to write the output to:
 path_out_temp <- tempdir()
@@ -66,7 +66,8 @@ network_list <- create_swmm_model(
   path_timeseries = system.file("extdata", "default_rain.dat", package = "urbandrain"),
   path_options = system.file("extdata", "options.txt", package = "urbandrain"),
   infiltration = ex1$infiltration,
-  path_out = path_out_temp
+  path_out = path_out_temp,
+  swmm5_exec = "C:/Program Files/EPA SWMM 5.2.4 (64-bit)/runswmm.exe" # default directory under windows
 )
 
 # show summary of the final artificially generated drainage network:
